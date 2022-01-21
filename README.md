@@ -1,4 +1,4 @@
-HEROKU = https://hendrew-quarkus.herokuapp.com/swagger-ui.html/#
+HEROKU = https://api-movidesk-ids.herokuapp.com/swagger-ui.html/
 # hendrew-quarkus Project
 
 This project uses Quarkus, the Supersonic Subatomic Java Framework.

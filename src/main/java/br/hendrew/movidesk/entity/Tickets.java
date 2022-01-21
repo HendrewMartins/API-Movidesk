@@ -1,15 +1,44 @@
 package br.hendrew.movidesk.entity;
 
+
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.Id;
+import javax.persistence.JoinColumn;
+import javax.persistence.ManyToOne;
+import javax.persistence.Table;
+
+@Entity
+@Table(name = "tickets")
 public class Tickets {
 
-    private String baseStatus;
-    private String status;
-    private String urgency;
-    private String category;
-    private String createdDate;
-    private String subject;
-    private long type;
+    @Id
+	//@GeneratedValue(strategy = GenerationType.SEQUENCE)
     private long id;
+    
+    @Column(name = "baseStatus", nullable = false)
+    private String baseStatus;
+
+    @Column(name = "status", nullable = false)
+    private String status;
+
+    @Column(name = "urgency", nullable = false)
+    private String urgency;
+
+    @Column(name = "category", nullable = false)
+    private String category;
+
+    @Column(name = "createdDate", nullable = false)
+    private String createdDate;
+
+    @Column(name = "subject", nullable = false)
+    private String subject;
+
+    @Column(name = "type", nullable = false)
+    private long type;
+    
+    @ManyToOne
+    @JoinColumn(name = "owner", nullable = false)
     private Owner owner;
     
     public Tickets() {
