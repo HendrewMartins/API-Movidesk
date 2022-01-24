@@ -2,7 +2,11 @@ package br.hendrew.movidesk.services;
 
 import java.util.List;
 
+import br.hendrew.movidesk.entity.AgenteTickets;
 import br.hendrew.movidesk.entity.Tickets;
+import br.hendrew.movidesk.entity.TicketsSituacao;
+import br.hendrew.movidesk.entity.TicketsType;
+import br.hendrew.movidesk.entity.TicketsUrgency;
 import br.hendrew.movidesk.exception.MenssageNotFoundException;
 
 public interface TicketsService {
@@ -24,5 +28,18 @@ public interface TicketsService {
     long countTickets();
 
     List<Tickets> getTicketsPage(int pag, int quant) throws MenssageNotFoundException;
+
     List<Tickets> getTicketsbaseStatus(String baseStatus) throws MenssageNotFoundException;
+
+    TicketsSituacao getTicketsbaseStatusSUM() throws MenssageNotFoundException;
+
+    List<Tickets> getTicketsUrgency(String urgency) throws MenssageNotFoundException;
+
+    TicketsUrgency getTicketsUrgencySUM() throws MenssageNotFoundException;
+
+    List<Tickets> getTicketsType(long type) throws MenssageNotFoundException;
+
+    TicketsType getTicketsTypeSUM() throws MenssageNotFoundException;
+
+    List<AgenteTickets> OwnerTickets() throws MenssageNotFoundException;
 }

@@ -130,10 +130,9 @@ public class MovideskIntegracao {
                         ticketsAux.get(i).setOwner(owner);
                     }
 
-                    Tickets updateTickets;
+
                     if (ticketsService.getTicketsExist(ticketsAux.get(i).getId())) {
-                        updateTickets = ticketsService.getTicketsById(ticketsAux.get(i).getId());
-                        ticketsService.updateTickets(updateTickets.getId(), updateTickets);
+                        ticketsService.updateTickets(ticketsAux.get(i).getId(), ticketsAux.get(i)); 
                         System.out.println(ticketsAux.get(i).getId());
                     } else {
                         ticketsService.saveTickets(ticketsAux.get(i));
@@ -190,6 +189,10 @@ public class MovideskIntegracao {
 
                     Tickets ticketsUpdate = gson.fromJson(jsonEmString, Tickets.class);
                     if (ticketsService.getTicketsExist(ticketsUpdate.getId())) {
+                        if (ticketsUpdate.getOwner() == null) {
+                            Owner owner = ownerService.getOwnerByStringId("A0207");
+                            ticketsUpdate.setOwner(owner);
+                        }
                         ticketsService.updateTickets(ticketsUpdate.getId(), ticketsUpdate);
                         System.out.println("Base Movidesk" + ticketsUpdate.getId());
                     }

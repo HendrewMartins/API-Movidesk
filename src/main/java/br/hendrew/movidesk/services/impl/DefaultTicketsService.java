@@ -1,13 +1,18 @@
 package br.hendrew.movidesk.services.impl;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.transaction.Transactional;
 
+import br.hendrew.movidesk.entity.AgenteTickets;
 import br.hendrew.movidesk.entity.Owner;
 import br.hendrew.movidesk.entity.Tickets;
+import br.hendrew.movidesk.entity.TicketsSituacao;
+import br.hendrew.movidesk.entity.TicketsType;
+import br.hendrew.movidesk.entity.TicketsUrgency;
 import br.hendrew.movidesk.exception.MenssageNotFoundException;
 import br.hendrew.movidesk.repository.OwnerRepository;
 import br.hendrew.movidesk.repository.TicketsRepository;
@@ -107,5 +112,106 @@ public class DefaultTicketsService implements TicketsService {
         return ticketsRepository.findBybaseStatus(baseStatus);
     }
 
+    @Override
+    public List<Tickets> getTicketsUrgency(String urgency) throws MenssageNotFoundException {
+        return ticketsRepository.findByUrgency(urgency);
+    }
 
+    @Override
+    public TicketsSituacao getTicketsbaseStatusSUM() throws MenssageNotFoundException{
+        TicketsSituacao sum = new TicketsSituacao();
+        List<Tickets> listTickets = new ArrayList<Tickets>();
+
+        listTickets = ticketsRepository.findBybaseStatus("Canceled");
+        sum.setCanceled(listTickets.size());
+
+        listTickets = ticketsRepository.findBybaseStatus("Closed");
+        sum.setClosed(listTickets.size());
+
+        listTickets = ticketsRepository.findBybaseStatus("InAttendance");
+        sum.setInAttendance(listTickets.size());
+
+        listTickets = ticketsRepository.findBybaseStatus("New");
+        sum.setNewReg(listTickets.size());
+
+        listTickets = ticketsRepository.findBybaseStatus("Resolved");
+        sum.setResolved(listTickets.size());
+
+        listTickets = ticketsRepository.findBybaseStatus("Stopped");
+        sum.setStopped(listTickets.size());
+        return sum;
+    }
+
+    @Override
+    public TicketsUrgency getTicketsUrgencySUM() throws MenssageNotFoundException{
+        TicketsUrgency sum = new TicketsUrgency();
+        List<Tickets> listTickets = new ArrayList<Tickets>();
+
+        listTickets = ticketsRepository.findByUrgency("2 - Alta");
+        sum.setAlta(listTickets.size());
+
+        listTickets = ticketsRepository.findByUrgency("4 - Baixa");
+        sum.setBaixa(listTickets.size());
+
+        listTickets = ticketsRepository.findByUrgency("3 - MÃ©dia");
+        sum.setMedia(listTickets.size());
+
+        listTickets = ticketsRepository.findByUrgencyIsNull("New");
+        sum.setNulo(listTickets.size());
+
+        listTickets = ticketsRepository.findByUrgency("1 - Urgente");
+        sum.setUrgente(listTickets.size());
+
+        return sum;
+    }
+
+    @Override
+    public List<Tickets> getTicketsType(long type) throws MenssageNotFoundException {
+        return ticketsRepository.findBytype(type);
+    }
+
+    @Override
+    public TicketsType getTicketsTypeSUM() throws MenssageNotFoundException{
+        TicketsType sum = new TicketsType();
+        List<Tickets> listTickets = new ArrayList<Tickets>();
+
+        listTickets = ticketsRepository.findBytype(1);
+        sum.setInterno(listTickets.size());
+
+        listTickets = ticketsRepository.findBytype(2);
+        sum.setExterno(listTickets.size());
+
+        return sum;
+    }
+
+    @Override
+    public List<AgenteTickets> OwnerTickets() throws MenssageNotFoundException{
+        List<AgenteTickets> agente = new ArrayList<AgenteTickets>(); 
+        List<Owner> owner = ownerRepository.listAll();
+        int quantOwner = 0;
+        for(int i = 0; i < owner.size(); i++){
+            List<Tickets> ticketsInAttedance = ticketsRepository.findByOwnerInAttedance(owner.get(i));
+            List<Tickets> ticketsNew = ticketsRepository.findByOwnerNew(owner.get(i));
+            List<Tickets> ticketsSttoped = ticketsRepository.findByOwnerStopped(owner.get(i));
+
+            if((ticketsInAttedance.size() > 0) ||
+               (ticketsNew.size() > 0) ||
+               (ticketsSttoped.size() > 0)){
+
+                   AgenteTickets agenteTemp = new AgenteTickets();
+                   agenteTemp.idAgente = owner.get(i).getId();
+                   agenteTemp.businessName = owner.get(i).getBusinessName();
+                   agenteTemp.quantTicketsInAttendance = ticketsInAttedance.size();
+                   agenteTemp.quantTicketsNew = ticketsNew.size();
+                   agenteTemp.quantTicketsStopped = ticketsSttoped.size();
+
+                   agente.add(quantOwner,agenteTemp);
+
+                   quantOwner++;
+            }
+        }
+        
+        return agente;
+    }
 }
+

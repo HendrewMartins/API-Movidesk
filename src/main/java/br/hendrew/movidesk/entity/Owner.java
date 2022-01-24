@@ -30,6 +30,17 @@ public class Owner {
     @Column(name = "pathPicture", nullable = false)
     private String pathPicture;
 
+    public Owner(String id, long personType, long profileType, String businessName, String email, String phone,
+            String pathPicture) {
+        this.id = id;
+        this.personType = personType;
+        this.profileType = profileType;
+        this.businessName = businessName;
+        this.email = email;
+        this.phone = phone;
+        this.pathPicture = pathPicture;
+    }
+
     public Owner() {
     }
 

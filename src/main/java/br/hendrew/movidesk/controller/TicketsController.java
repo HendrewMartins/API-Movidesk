@@ -10,6 +10,7 @@ import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
@@ -18,8 +19,14 @@ import org.eclipse.microprofile.openapi.annotations.media.Content;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
 
+import br.hendrew.movidesk.entity.AgenteTickets;
 import br.hendrew.movidesk.entity.Owner;
 import br.hendrew.movidesk.entity.Tickets;
+import br.hendrew.movidesk.entity.TicketsSituacao;
+import br.hendrew.movidesk.entity.TicketsType;
+import br.hendrew.movidesk.entity.TicketsUrgency;
+import br.hendrew.movidesk.exception.MenssageNotFoundException;
+import br.hendrew.movidesk.exceptionhandler.ExceptionHandler;
 import br.hendrew.movidesk.services.MovideskIntegracao;
 import br.hendrew.movidesk.services.TicketsService;
 
@@ -68,6 +75,84 @@ public class TicketsController {
     public List<Tickets> getStatusTickets() throws Exception {
         return mov.atualizarSituacaoTickets();
     }
+
+    @GET
+	@PermitAll
+	@Path("/status/{status}")
+    @Operation(summary = "Pegar Tickets Status", description = "Pesquisa por um Status")
+	@APIResponses(value = {
+			@APIResponse(responseCode = "200", description = "Success", content = @Content(mediaType = "application/json", schema = @Schema(implementation = Tickets.class))),
+			@APIResponse(responseCode = "404", description = "Tickets not found", content = @Content(mediaType = "application/json", schema = @Schema(implementation = ExceptionHandler.ErrorResponseBody.class))) })
+	public List<Tickets> getstatus(@PathParam("status") String status) throws MenssageNotFoundException {
+        return ticketsService.getTicketsbaseStatus(status);
+    }
+
+    @GET
+	@PermitAll
+	@Path("/urgency/{urgency}")
+    @Operation(summary = "Pegar Tickets urgency", description = "Pesquisa por um urgency")
+	@APIResponses(value = {
+			@APIResponse(responseCode = "200", description = "Success", content = @Content(mediaType = "application/json", schema = @Schema(implementation = Tickets.class))),
+			@APIResponse(responseCode = "404", description = "Tickets not found", content = @Content(mediaType = "application/json", schema = @Schema(implementation = ExceptionHandler.ErrorResponseBody.class))) })
+	public List<Tickets> geturgency(@PathParam("urgency") String urgency) throws MenssageNotFoundException {
+        return ticketsService.getTicketsUrgency(urgency);
+    }
+
+    @GET
+	@PermitAll
+	@Path("/statussum/")
+    @Operation(summary = "Pegar Quantidade Tickets por Status", description = "Pesquisa quantidade por um Status")
+	@APIResponses(value = {
+			@APIResponse(responseCode = "200", description = "Success", content = @Content(mediaType = "application/json", schema = @Schema(implementation = TicketsSituacao.class))),
+			@APIResponse(responseCode = "404", description = "Tickets not found", content = @Content(mediaType = "application/json", schema = @Schema(implementation = ExceptionHandler.ErrorResponseBody.class))) })
+	public TicketsSituacao getSumTickets() throws MenssageNotFoundException {
+        return ticketsService.getTicketsbaseStatusSUM();
+    }
+
+    @GET
+	@PermitAll
+	@Path("/urgencysum/")
+    @Operation(summary = "Pegar Quantidade Tickets por Urgencia", description = "Pesquisa quantidade por um Urgencia")
+	@APIResponses(value = {
+			@APIResponse(responseCode = "200", description = "Success", content = @Content(mediaType = "application/json", schema = @Schema(implementation = TicketsUrgency.class))),
+			@APIResponse(responseCode = "404", description = "Tickets not found", content = @Content(mediaType = "application/json", schema = @Schema(implementation = ExceptionHandler.ErrorResponseBody.class))) })
+	public TicketsUrgency getSumUrgency() throws MenssageNotFoundException {
+        return ticketsService.getTicketsUrgencySUM();
+    }
+
+    @GET
+	@PermitAll
+	@Path("/type/{type}")
+    @Operation(summary = "Pegar Tickets Tipo", description = "Pesquisa por um tipo")
+	@APIResponses(value = {
+			@APIResponse(responseCode = "200", description = "Success", content = @Content(mediaType = "application/json", schema = @Schema(implementation = Tickets.class))),
+			@APIResponse(responseCode = "404", description = "Tickets not found", content = @Content(mediaType = "application/json", schema = @Schema(implementation = ExceptionHandler.ErrorResponseBody.class))) })
+	public List<Tickets> gettype(@PathParam("type") long type) throws MenssageNotFoundException {
+        return ticketsService.getTicketsType(type);
+    }
+
+    @GET
+	@PermitAll
+	@Path("/typesum/")
+    @Operation(summary = "Pegar Quantidade Tickets por tipo", description = "Pesquisa quantidade por um tipo")
+	@APIResponses(value = {
+			@APIResponse(responseCode = "200", description = "Success", content = @Content(mediaType = "application/json", schema = @Schema(implementation = TicketsType.class))),
+			@APIResponse(responseCode = "404", description = "Tickets not found", content = @Content(mediaType = "application/json", schema = @Schema(implementation = ExceptionHandler.ErrorResponseBody.class))) })
+	public TicketsType getSumType() throws MenssageNotFoundException {
+        return ticketsService.getTicketsTypeSUM();
+    }
+
+    @GET
+	@PermitAll
+	@Path("/ticketsowner/")
+    @Operation(summary = "Pegar Tickets por Owner", description = "Pesquisa quantidade por Analista")
+	@APIResponses(value = {
+			@APIResponse(responseCode = "200", description = "Success", content = @Content(mediaType = "application/json", schema = @Schema(implementation = AgenteTickets.class))),
+			@APIResponse(responseCode = "404", description = "Tickets not found", content = @Content(mediaType = "application/json", schema = @Schema(implementation = ExceptionHandler.ErrorResponseBody.class))) })
+	public List<AgenteTickets> getOwnerTickets() throws MenssageNotFoundException {
+        return ticketsService.OwnerTickets();
+    }
+
 
     @POST
     @PermitAll
