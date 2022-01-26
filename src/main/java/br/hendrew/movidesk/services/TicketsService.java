@@ -2,7 +2,11 @@ package br.hendrew.movidesk.services;
 
 import java.util.List;
 
+import br.hendrew.movidesk.entity.AgenteCategory;
+import br.hendrew.movidesk.entity.AgenteJustification;
 import br.hendrew.movidesk.entity.AgenteTickets;
+import br.hendrew.movidesk.entity.Category;
+import br.hendrew.movidesk.entity.Justification;
 import br.hendrew.movidesk.entity.Tickets;
 import br.hendrew.movidesk.entity.TicketsSituacao;
 import br.hendrew.movidesk.entity.TicketsType;
@@ -42,4 +46,12 @@ public interface TicketsService {
     TicketsType getTicketsTypeSUM() throws MenssageNotFoundException;
 
     List<AgenteTickets> OwnerTickets() throws MenssageNotFoundException;
+
+    List<AgenteCategory> OwnerCategory() throws MenssageNotFoundException;
+
+    Category Category() throws MenssageNotFoundException;
+
+    List<AgenteJustification> ownerJustifications() throws MenssageNotFoundException;
+
+    Justification justification() throws MenssageNotFoundException;
 }

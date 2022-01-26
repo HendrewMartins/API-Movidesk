@@ -22,8 +22,13 @@ import br.hendrew.movidesk.validation.Util;
 @ApplicationScoped
 public class MovideskIntegracao {
     static String webService = "https://api.movidesk.com/public/v1/tickets?" +
-            "token=6fd0a503-b0d1-40fe-91f8-4cc4e3e027f7&$select=id,type,subject,createdDate,category," +
-            "urgency,status,baseStatus,owner&$orderby=id&$expand=owner";
+            "token=6fd0a503-b0d1-40fe-91f8-4cc4e3e027f7&$select=id,type,subject,createdDate,"
+           +"category,urgency,status,baseStatus,protocol,justification,origin,originEmailAccount,"
+           +"ownerTeam,resolvedIn,reopenedIn,closedIn,lastActionDate,actionCount,lastUpdate,"
+           +"lifetimeWorkingTime,stoppedTime,stoppedTimeWorkingTime,resolvedInFirstCall,chatTalkTime,"
+           +"chatWaitingTime,slaAgreement,slaAgreementRule,slaSolutionTime,slaResponseTime"
+           +"&$orderby=id&$expand=owner";
+
     static int codigoSucesso = 200;
 
     private final TicketsService ticketsService;
@@ -46,7 +51,18 @@ public class MovideskIntegracao {
 
                 while (end) {
                     List<Tickets> ticketsAux = new ArrayList<Tickets>();
-
+                    if(ownerService.countOwner() == 0){
+                        Owner owner = new Owner();
+                        owner.setId("A0207");
+                        owner.setBusinessName("Sem Agente");
+                        owner.setPersonType(1);
+                        owner.setProfileType(3);
+                        owner.setEmail("email");
+                        owner.setPathPicture("pathpicture");
+                        owner.setPhone("phone");
+                        ownerService.saveOwner(owner);
+                    }
+                  
                     URL url = new URL(urlMontada + "&$top=1000" + "&$skip=" + quant);
                     HttpURLConnection conexao = (HttpURLConnection) url.openConnection();
 
@@ -96,13 +112,29 @@ public class MovideskIntegracao {
         String urlMontada = webService;
         List<Tickets> tickets = new ArrayList<Tickets>();
         Boolean end = true;
-        long quant = ticketsService.countTickets() - 500;
+        long quant = 0;
+        if(ticketsService.countTickets() > 500){
+            quant =  ticketsService.countTickets() - 500;
+        } 
 
         try {
 
             while (end) {
                 List<Tickets> ticketsAux = new ArrayList<Tickets>();
 
+                if(ownerService.countOwner() == 0){
+                    Owner owner = new Owner();
+                    owner.setId("A0207");
+                    owner.setBusinessName("Sem Agente");
+                    owner.setPersonType(1);
+                    owner.setProfileType(3);
+                    owner.setEmail("email");
+                    owner.setPathPicture("pathpicture");
+                    owner.setPhone("phone");
+                    ownerService.
+                    saveOwner(owner);
+                }
+            
                 URL url = new URL(urlMontada + "&$top=1000" + "&$skip=" + quant);
                 HttpURLConnection conexao = (HttpURLConnection) url.openConnection();
 
@@ -128,6 +160,11 @@ public class MovideskIntegracao {
                     if (ticketsAux.get(i).getOwner() == null) {
                         Owner owner = ownerService.getOwnerByStringId("A0207");
                         ticketsAux.get(i).setOwner(owner);
+                    }
+
+                    if (ticketsAux.get(i).getActionCount() >= 0) {
+                    }else{
+                        
                     }
 
 

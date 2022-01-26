@@ -19,7 +19,11 @@ import org.eclipse.microprofile.openapi.annotations.media.Content;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
 
+import br.hendrew.movidesk.entity.AgenteCategory;
+import br.hendrew.movidesk.entity.AgenteJustification;
 import br.hendrew.movidesk.entity.AgenteTickets;
+import br.hendrew.movidesk.entity.Category;
+import br.hendrew.movidesk.entity.Justification;
 import br.hendrew.movidesk.entity.Owner;
 import br.hendrew.movidesk.entity.Tickets;
 import br.hendrew.movidesk.entity.TicketsSituacao;
@@ -153,6 +157,50 @@ public class TicketsController {
         return ticketsService.OwnerTickets();
     }
 
+    @GET
+	@PermitAll
+	@Path("/ownercategory/")
+    @Operation(summary = "Pegar Tickets por Owner e Categoria", description = "Pesquisa quantidade por Analista e Categoria")
+	@APIResponses(value = {
+			@APIResponse(responseCode = "200", description = "Success", content = @Content(mediaType = "application/json", schema = @Schema(implementation = AgenteCategory.class))),
+			@APIResponse(responseCode = "404", description = "Tickets not found", content = @Content(mediaType = "application/json", schema = @Schema(implementation = ExceptionHandler.ErrorResponseBody.class))) })
+	public List<AgenteCategory> getOwnerTicketsAnalista() throws MenssageNotFoundException {
+        return ticketsService.OwnerCategory();
+    }
+
+    @GET
+	@PermitAll
+	@Path("/category/")
+    @Operation(summary = "Pegar Tickets por Categoria", description = "Pesquisa quantidade por Categoria")
+	@APIResponses(value = {
+			@APIResponse(responseCode = "200", description = "Success", content = @Content(mediaType = "application/json", schema = @Schema(implementation = Category.class))),
+			@APIResponse(responseCode = "404", description = "Tickets not found", content = @Content(mediaType = "application/json", schema = @Schema(implementation = ExceptionHandler.ErrorResponseBody.class))) })
+	public Category getCategories() throws MenssageNotFoundException {
+        return ticketsService.Category();
+    }
+
+
+    @GET
+	@PermitAll
+	@Path("/ownerjustification/")
+    @Operation(summary = "Pegar Tickets por Owner e Justification", description = "Pesquisa quantidade por Analista e Justification")
+	@APIResponses(value = {
+			@APIResponse(responseCode = "200", description = "Success", content = @Content(mediaType = "application/json", schema = @Schema(implementation = AgenteJustification.class))),
+			@APIResponse(responseCode = "404", description = "Tickets not found", content = @Content(mediaType = "application/json", schema = @Schema(implementation = ExceptionHandler.ErrorResponseBody.class))) })
+	public List<AgenteJustification> getOwnerTicketsJustification() throws MenssageNotFoundException {
+        return ticketsService.ownerJustifications();
+    }
+
+    @GET
+	@PermitAll
+	@Path("/justification/")
+    @Operation(summary = "Pegar Tickets por Justifativa", description = "Pesquisa quantidade por Justificativa")
+	@APIResponses(value = {
+			@APIResponse(responseCode = "200", description = "Success", content = @Content(mediaType = "application/json", schema = @Schema(implementation = Justification.class))),
+			@APIResponse(responseCode = "404", description = "Tickets not found", content = @Content(mediaType = "application/json", schema = @Schema(implementation = ExceptionHandler.ErrorResponseBody.class))) })
+	public Justification getJustification() throws MenssageNotFoundException {
+        return ticketsService.justification();
+    }
 
     @POST
     @PermitAll
