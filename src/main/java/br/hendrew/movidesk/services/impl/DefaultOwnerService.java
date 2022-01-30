@@ -11,6 +11,7 @@ import br.hendrew.movidesk.entity.Owner;
 import br.hendrew.movidesk.exception.MenssageNotFoundException;
 import br.hendrew.movidesk.repository.OwnerRepository;
 import io.quarkus.panache.common.Page;
+import io.quarkus.panache.common.Sort;
 
 @ApplicationScoped
 public class DefaultOwnerService implements OwnerService {
@@ -36,7 +37,7 @@ public class DefaultOwnerService implements OwnerService {
 
     @Override
     public List<Owner> getAllOwner() {
-        return ownerRepository.listAll();
+        return ownerRepository.listAll(Sort.ascending("businessname"));
     }
 
     @Transactional

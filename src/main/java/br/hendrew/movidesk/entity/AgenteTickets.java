@@ -3,15 +3,51 @@ package br.hendrew.movidesk.entity;
 
 public class AgenteTickets {
     
-    public String idAgente;
-    public String businessName;
-    public long quantTicketsInAttendance;
-    public long quantTicketsNew;
-    public long quantTicketsStopped;
-    
+    private String idAgente;
+    private String businessName;
+    private long quantTicketsInAttendance;
+    private long quantTicketsNew;
+    private long quantTicketsStopped;
+    private long quantTicketsCanceled;
+    private long quantTicketsResolved;
+    private long quantTicketsClosed;
+
     public AgenteTickets() {
     }
+    
+    public long getQuantTicketsCanceled() {
+        return quantTicketsCanceled;
+    }
 
+
+
+    public void setQuantTicketsCanceled(long quantTicketsCanceled) {
+        this.quantTicketsCanceled = quantTicketsCanceled;
+    }
+
+
+
+    public long getQuantTicketsResolved() {
+        return quantTicketsResolved;
+    }
+
+
+
+    public void setQuantTicketsResolved(long quantTicketsResolved) {
+        this.quantTicketsResolved = quantTicketsResolved;
+    }
+
+
+
+    public long getQuantTicketsClosed() {
+        return quantTicketsClosed;
+    }
+
+
+
+    public void setQuantTicketsClosed(long quantTicketsClosed) {
+        this.quantTicketsClosed = quantTicketsClosed;
+    }
 
 
     public String getIdAgente() {
@@ -62,9 +98,10 @@ public class AgenteTickets {
 
     @Override
     public String toString() {
-        return "AgenteTickets [businessName=" + businessName + ", idAgente=" + idAgente + ", quantTicketsInAttendance="
-                + quantTicketsInAttendance + ", quantTicketsNew=" + quantTicketsNew + ", quantTicketsStopped="
-                + quantTicketsStopped + "]";
+        return "AgenteTickets [businessName=" + businessName + ", idAgente=" + idAgente + ", quantTicketsCanceled="
+                + quantTicketsCanceled + ", quantTicketsClosed=" + quantTicketsClosed + ", quantTicketsInAttendance="
+                + quantTicketsInAttendance + ", quantTicketsNew=" + quantTicketsNew + ", quantTicketsResolved="
+                + quantTicketsResolved + ", quantTicketsStopped=" + quantTicketsStopped + "]";
     }
 
    

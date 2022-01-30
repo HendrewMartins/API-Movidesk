@@ -2,17 +2,17 @@ package br.hendrew.movidesk.entity;
 
 public class Category {
 
-    public long customizacao;
-    public long treinamentoOnline;
-    public long duvida;
-    public long implantacao;
-    public long licitacao;
-    public long solicitacaoServico;
-    public long homologacao;
-    public long falha;
-    public long semCategoria;
-    public long solicitacaoTreinamento;
-    public long sugestao;
+    private long customizacao;
+    private long treinamentoOnline;
+    private long duvida;
+    private long implantacao;
+    private long licitacao;
+    private long solicitacaoServico;
+    private long homologacao;
+    private long falha;
+    private long semCategoria;
+    private long solicitacaoTreinamento;
+    private long sugestao;
     
     public Category() {
     }

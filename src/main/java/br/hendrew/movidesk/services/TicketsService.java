@@ -8,6 +8,9 @@ import br.hendrew.movidesk.entity.AgenteTickets;
 import br.hendrew.movidesk.entity.Category;
 import br.hendrew.movidesk.entity.Justification;
 import br.hendrew.movidesk.entity.Tickets;
+import br.hendrew.movidesk.entity.TicketsAnos;
+import br.hendrew.movidesk.entity.TicketsAnosCategory;
+import br.hendrew.movidesk.entity.TicketsMesesDias;
 import br.hendrew.movidesk.entity.TicketsSituacao;
 import br.hendrew.movidesk.entity.TicketsType;
 import br.hendrew.movidesk.entity.TicketsUrgency;
@@ -54,4 +57,31 @@ public interface TicketsService {
     List<AgenteJustification> ownerJustifications() throws MenssageNotFoundException;
 
     Justification justification() throws MenssageNotFoundException;
+
+    List<TicketsAnos> ticketsAnos() throws MenssageNotFoundException;
+
+    List<TicketsAnosCategory> ticketsAnosCategory() throws MenssageNotFoundException;
+
+    List<TicketsMesesDias> ticketsMesesCategory() throws MenssageNotFoundException;
+
+    TicketsSituacao getTicketsbaseStatusSUMDate() throws MenssageNotFoundException;
+
+    TicketsUrgency getTicketsUrgencySUMDate() throws MenssageNotFoundException;
+
+    Category CategorySeven() throws MenssageNotFoundException;
+
+    Category CategoryDay() throws MenssageNotFoundException;
+
+    List<AgenteTickets> OwnerTicketsSeven() throws MenssageNotFoundException;
+
+    List<TicketsMesesDias> ticketsSevenCategory() throws MenssageNotFoundException;
+
+    TicketsSituacao getTicketsbaseStatusSUMDay() throws MenssageNotFoundException;
+
+    TicketsUrgency getTicketsUrgencySUMDay() throws MenssageNotFoundException;
+
+    List<AgenteTickets> OwnerTicketsDay() throws MenssageNotFoundException;
+
+    List<TicketsMesesDias> ticketsDayCategory() throws MenssageNotFoundException;
+
 }

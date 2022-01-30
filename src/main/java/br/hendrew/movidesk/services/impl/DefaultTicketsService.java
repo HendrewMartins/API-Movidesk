@@ -1,9 +1,12 @@
 package br.hendrew.movidesk.services.impl;
 
 import java.sql.Time;
+import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.List;
 
 import javax.enterprise.context.ApplicationScoped;
@@ -17,6 +20,9 @@ import br.hendrew.movidesk.entity.Category;
 import br.hendrew.movidesk.entity.Justification;
 import br.hendrew.movidesk.entity.Owner;
 import br.hendrew.movidesk.entity.Tickets;
+import br.hendrew.movidesk.entity.TicketsAnos;
+import br.hendrew.movidesk.entity.TicketsAnosCategory;
+import br.hendrew.movidesk.entity.TicketsMesesDias;
 import br.hendrew.movidesk.entity.TicketsSituacao;
 import br.hendrew.movidesk.entity.TicketsType;
 import br.hendrew.movidesk.entity.TicketsUrgency;
@@ -25,6 +31,7 @@ import br.hendrew.movidesk.repository.OwnerRepository;
 import br.hendrew.movidesk.repository.TicketsRepository;
 import br.hendrew.movidesk.services.TicketsService;
 import io.quarkus.panache.common.Page;
+import io.quarkus.panache.common.Sort;
 
 @ApplicationScoped
 public class DefaultTicketsService implements TicketsService {
@@ -112,6 +119,10 @@ public class DefaultTicketsService implements TicketsService {
         dataStr = tickets.getCreatedDate().substring(0, 10);
         timeStr = tickets.getCreatedDate().substring(11, 19);
 
+        long valuehoras = Long.valueOf(timeStr.substring(0, 2));
+        long valueminutos = Long.valueOf(timeStr.substring(3, 5));
+        long valuesegundos = Long.valueOf(timeStr.substring(6, 8));
+
         // converte string em data
         try {
             util_Date = formatadorHora.parse(dataStr);
@@ -120,6 +131,50 @@ public class DefaultTicketsService implements TicketsService {
         }
 
         // converte string em hora
+        try {
+            util_time = formatadorTime.parse(timeStr);
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
+
+        if (valuehoras <= 3) {
+            if (valuehoras != 3) {
+                Calendar dt = Calendar.getInstance();
+                dt.setTime(util_Date);
+                dt.add(Calendar.DAY_OF_MONTH, -1);
+                DateFormat df = new SimpleDateFormat("yyyy-MM-dd");
+                dataStr = df.format(dt.getTime());
+
+                try {
+                    util_Date = formatadorHora.parse(dataStr);
+                } catch (ParseException e) {
+                    e.printStackTrace();
+                }
+            } else {
+                if (valueminutos < 1) {
+                    if (valuesegundos < 1) {
+                        Calendar dt = Calendar.getInstance();
+                        dt.setTime(util_Date);
+                        dt.add(Calendar.DAY_OF_MONTH, -1);
+                        DateFormat df = new SimpleDateFormat("yyyy-MM-dd");
+                        dataStr = df.format(dt.getTime());
+                        try {
+                            util_Date = formatadorHora.parse(dataStr);
+                        } catch (ParseException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }
+            }
+
+        }
+
+        Calendar d = Calendar.getInstance();
+        d.setTime(util_time);
+        d.add(Calendar.HOUR, -3);
+        DateFormat df = new SimpleDateFormat("HH:mm:ss");
+        timeStr = df.format(d.getTime());
+
         try {
             util_time = formatadorTime.parse(timeStr);
         } catch (ParseException e) {
@@ -154,6 +209,13 @@ public class DefaultTicketsService implements TicketsService {
         dataStr = tickets.getCreatedDate().substring(0, 10);
         timeStr = tickets.getCreatedDate().substring(11, 19);
 
+        long valuehoras = Long.valueOf(timeStr.substring(0, 2));
+        long valueminutos = Long.valueOf(timeStr.substring(3, 5));
+        long valuesegundos = Long.valueOf(timeStr.substring(6, 8));
+
+
+        
+
         // converte string em data
         try {
             util_Date = formatadorHora.parse(dataStr);
@@ -167,6 +229,51 @@ public class DefaultTicketsService implements TicketsService {
         } catch (ParseException e) {
             e.printStackTrace();
         }
+
+        if (valuehoras <= 3) {
+            if (valuehoras != 3) {
+                Calendar dt = Calendar.getInstance();
+                dt.setTime(util_Date);
+                dt.add(Calendar.DAY_OF_MONTH, -1);
+                DateFormat df = new SimpleDateFormat("yyyy-MM-dd");
+                dataStr = df.format(dt.getTime());
+
+                try {
+                    util_Date = formatadorHora.parse(dataStr);
+                } catch (ParseException e) {
+                    e.printStackTrace();
+                }
+            } else {
+                if (valueminutos < 1) {
+                    if (valuesegundos < 1) {
+                        Calendar dt = Calendar.getInstance();
+                        dt.setTime(util_Date);
+                        dt.add(Calendar.DAY_OF_MONTH, -1);
+                        DateFormat df = new SimpleDateFormat("yyyy-MM-dd");
+                        dataStr = df.format(dt.getTime());
+                        try {
+                            util_Date = formatadorHora.parse(dataStr);
+                        } catch (ParseException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }
+            }
+
+        }
+
+        Calendar d = Calendar.getInstance();
+        d.setTime(util_time);
+        d.add(Calendar.HOUR, -3);
+        DateFormat df = new SimpleDateFormat("HH:mm:ss");
+        timeStr = df.format(d.getTime());
+
+        try {
+            util_time = formatadorTime.parse(timeStr);
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
+
         Time time = new Time(util_time.getTime());
 
         tickets.setDataTicket(util_Date);
@@ -276,7 +383,7 @@ public class DefaultTicketsService implements TicketsService {
     public List<AgenteTickets> OwnerTickets() throws MenssageNotFoundException {
         List<AgenteTickets> agente = new ArrayList<AgenteTickets>();
 
-        List<Owner> owner = ownerRepository.listAll();
+        List<Owner> owner = ownerRepository.listAll(Sort.ascending("businessname"));
 
         List<Tickets> ticketsInAttendance = ticketsRepository.findBybaseStatus("InAttendance");
         List<Tickets> ticketsNew = ticketsRepository.findBybaseStatus("New");
@@ -311,11 +418,14 @@ public class DefaultTicketsService implements TicketsService {
             if ((quantInAttendance > 0) || (quantNew > 0) || (quantStopped > 0)) {
 
                 AgenteTickets agenteTemp = new AgenteTickets();
-                agenteTemp.idAgente = owner.get(i).getId();
-                agenteTemp.businessName = owner.get(i).getBusinessName();
-                agenteTemp.quantTicketsInAttendance = quantInAttendance;
-                agenteTemp.quantTicketsNew = quantNew;
-                agenteTemp.quantTicketsStopped = quantStopped;
+                agenteTemp.setIdAgente(owner.get(i).getId());
+                agenteTemp.setBusinessName(owner.get(i).getBusinessName());
+                agenteTemp.setQuantTicketsInAttendance(quantInAttendance);
+                agenteTemp.setQuantTicketsNew(quantNew);
+                agenteTemp.setQuantTicketsStopped(quantStopped);
+                agenteTemp.setQuantTicketsCanceled(0);
+                agenteTemp.setQuantTicketsResolved(0);
+                agenteTemp.setQuantTicketsClosed(0);
 
                 agente.add(quantOwner, agenteTemp);
 
@@ -331,7 +441,7 @@ public class DefaultTicketsService implements TicketsService {
         List<AgenteCategory> agente = new ArrayList<AgenteCategory>();
         int quantOwner = 0;
 
-        List<Owner> owner = ownerRepository.listAll();
+        List<Owner> owner = ownerRepository.listAll(Sort.ascending("businessname"));
         List<Tickets> ticketsCustomizacao = ticketsRepository.findByCategory("CustomizaÃ§Ã£o");
         List<Tickets> ticketsDuvida = ticketsRepository.findByCategory("DÃºvida");
         List<Tickets> ticketsFalha = ticketsRepository.findByCategory("Falha");
@@ -421,19 +531,19 @@ public class DefaultTicketsService implements TicketsService {
                     (quantTreina > 0) || (quantOnline > 0)) {
 
                 AgenteCategory agenteTemp = new AgenteCategory();
-                agenteTemp.idAgente = owner.get(i).getId();
-                agenteTemp.businessName = owner.get(i).getBusinessName();
-                agenteTemp.customizacao = quantCustom;
-                agenteTemp.duvida = quantDuvida;
-                agenteTemp.falha = quantFalha;
-                agenteTemp.homologacao = quantHomolo;
-                agenteTemp.implantacao = quantImplan;
-                agenteTemp.licitacao = quantLicita;
-                agenteTemp.semCategoria = quantSCateg;
-                agenteTemp.solicitacaoServico = quantServic;
-                agenteTemp.solicitacaoTreinamento = quantTreina;
-                agenteTemp.sugestao = quantSugest;
-                agenteTemp.treinamentoOnline = quantOnline;
+                agenteTemp.setIdAgente(owner.get(i).getId());
+                agenteTemp.setBusinessName(owner.get(i).getBusinessName());
+                agenteTemp.setCustomizacao(quantCustom);
+                agenteTemp.setDuvida(quantDuvida);
+                agenteTemp.setFalha(quantFalha);
+                agenteTemp.setHomologacao(quantHomolo);
+                agenteTemp.setImplantacao(quantImplan);
+                agenteTemp.setLicitacao(quantLicita);
+                agenteTemp.setSemCategoria(quantSCateg);
+                agenteTemp.setSolicitacaoServico(quantServic);
+                agenteTemp.setSolicitacaoTreinamento(quantTreina);
+                agenteTemp.setSugestao(quantSugest);
+                agenteTemp.setTreinamentoOnline(quantOnline);
 
                 agente.add(quantOwner, agenteTemp);
 
@@ -444,6 +554,7 @@ public class DefaultTicketsService implements TicketsService {
         return agente;
     }
 
+    @Override
     public Category Category() throws MenssageNotFoundException {
         Category cat = new Category();
 
@@ -460,17 +571,17 @@ public class DefaultTicketsService implements TicketsService {
         List<Tickets> ticketsTreinamentoRemoto = ticketsRepository
                 .findByCategory("SolicitaÃ§Ã£o de Treinamento Online (Remoto)");
 
-        cat.customizacao = ticketsCustomizacao.size();
-        cat.duvida = ticketsDuvida.size();
-        cat.falha = ticketsFalha.size();
-        cat.homologacao = ticketsHomologacao.size();
-        cat.implantacao = ticketsImplantacao.size();
-        cat.licitacao = ticketsLicitacao.size();
-        cat.semCategoria = ticketsSemCategoria.size();
-        cat.solicitacaoServico = ticketsServico.size();
-        cat.sugestao = ticketsSugestao.size();
-        cat.solicitacaoTreinamento = ticketsTreinamento.size();
-        cat.treinamentoOnline = ticketsTreinamentoRemoto.size();
+        cat.setCustomizacao(ticketsCustomizacao.size());
+        cat.setDuvida(ticketsDuvida.size());
+        cat.setFalha(ticketsFalha.size());
+        cat.setHomologacao(ticketsHomologacao.size());
+        cat.setImplantacao(ticketsImplantacao.size());
+        cat.setLicitacao(ticketsLicitacao.size());
+        cat.setSemCategoria(ticketsSemCategoria.size());
+        cat.setSolicitacaoServico(ticketsServico.size());
+        cat.setSugestao(ticketsSugestao.size());
+        cat.setSolicitacaoTreinamento(ticketsTreinamento.size());
+        cat.setTreinamentoOnline(ticketsTreinamentoRemoto.size());
 
         return cat;
     }
@@ -481,7 +592,7 @@ public class DefaultTicketsService implements TicketsService {
 
         int quantOwner = 0;
 
-        List<Owner> owner = ownerRepository.listAll();
+        List<Owner> owner = ownerRepository.listAll(Sort.ascending("businessname"));
 
         List<Tickets> ticketsparalisado = ticketsRepository.findByJustification("Paralisado");
         List<Tickets> ticketssemjustification = ticketsRepository.findBySemJustification("New");
@@ -555,198 +666,195 @@ public class DefaultTicketsService implements TicketsService {
             long quantenvAnalise = 0;
             long quantaguarRetClien = 0;
 
-            for(int x = 0; x < ticketsparalisado.size(); x++){
-                if(owner.get(i) == ticketsparalisado.get(x).getOwner()){
+            for (int x = 0; x < ticketsparalisado.size(); x++) {
+                if (owner.get(i) == ticketsparalisado.get(x).getOwner()) {
                     quantparalisado++;
                 }
             }
 
-            for(int x = 0; x < ticketssemjustification.size(); x++){
-                if(owner.get(i) == ticketssemjustification.get(x).getOwner()){
+            for (int x = 0; x < ticketssemjustification.size(); x++) {
+                if (owner.get(i) == ticketssemjustification.get(x).getOwner()) {
                     quantsemjustification++;
                 }
             }
 
-            for(int x = 0; x < ticketsaguarDesenv.size(); x++){
-                if(owner.get(i) == ticketsaguarDesenv.get(x).getOwner()){
+            for (int x = 0; x < ticketsaguarDesenv.size(); x++) {
+                if (owner.get(i) == ticketsaguarDesenv.get(x).getOwner()) {
                     quantaguarDesenv++;
                 }
             }
 
-            for(int x = 0; x < ticketsemAnalise.size(); x++){
-                if(owner.get(i) == ticketsemAnalise.get(x).getOwner()){
+            for (int x = 0; x < ticketsemAnalise.size(); x++) {
+                if (owner.get(i) == ticketsemAnalise.get(x).getOwner()) {
                     quantemAnalise++;
                 }
             }
-            
-            
-            for(int x = 0; x < ticketsaguardEscla.size(); x++){
-                if(owner.get(i) == ticketsaguardEscla.get(x).getOwner()){
+
+            for (int x = 0; x < ticketsaguardEscla.size(); x++) {
+                if (owner.get(i) == ticketsaguardEscla.get(x).getOwner()) {
                     quantaguardEscla++;
                 }
             }
 
-            for(int x = 0; x < ticketsresponClien.size(); x++){
-                if(owner.get(i) == ticketsresponClien.get(x).getOwner()){
+            for (int x = 0; x < ticketsresponClien.size(); x++) {
+                if (owner.get(i) == ticketsresponClien.get(x).getOwner()) {
                     quantresponClien++;
                 }
             }
-            for(int x = 0; x < ticketsemVerificacao.size(); x++){
-                if(owner.get(i) == ticketsemVerificacao.get(x).getOwner()){
+            for (int x = 0; x < ticketsemVerificacao.size(); x++) {
+                if (owner.get(i) == ticketsemVerificacao.get(x).getOwner()) {
                     quantemVerificacao++;
                 }
             }
 
-            for(int x = 0; x < ticketstreinaAgendad.size(); x++){
-                if(owner.get(i) == ticketstreinaAgendad.get(x).getOwner()){
+            for (int x = 0; x < ticketstreinaAgendad.size(); x++) {
+                if (owner.get(i) == ticketstreinaAgendad.get(x).getOwner()) {
                     quanttreinaAgendad++;
                 }
             }
 
-            for(int x = 0; x < ticketsaprovado.size(); x++){
-                if(owner.get(i) == ticketsaprovado.get(x).getOwner()){
+            for (int x = 0; x < ticketsaprovado.size(); x++) {
+                if (owner.get(i) == ticketsaprovado.get(x).getOwner()) {
                     quantaprovado++;
                 }
             }
 
-            for(int x = 0; x < ticketsemValidSupor.size(); x++){
-                if(owner.get(i) == ticketsemValidSupor.get(x).getOwner()){
+            for (int x = 0; x < ticketsemValidSupor.size(); x++) {
+                if (owner.get(i) == ticketsemValidSupor.get(x).getOwner()) {
                     quantemValidSupor++;
                 }
             }
 
-            for(int x = 0; x < ticketsaguardAtualiz.size(); x++){
-                if(owner.get(i) == ticketsaguardAtualiz.get(x).getOwner()){
+            for (int x = 0; x < ticketsaguardAtualiz.size(); x++) {
+                if (owner.get(i) == ticketsaguardAtualiz.get(x).getOwner()) {
                     quantaguardAtualiz++;
                 }
             }
 
-            for(int x = 0; x < ticketsaguardAprovac.size(); x++){
-                if(owner.get(i) == ticketsaguardAprovac.get(x).getOwner()){
+            for (int x = 0; x < ticketsaguardAprovac.size(); x++) {
+                if (owner.get(i) == ticketsaguardAprovac.get(x).getOwner()) {
                     quantaguardAprovac++;
                 }
             }
-            
-            for(int x = 0; x < ticketsaguardInfra.size(); x++){
-                if(owner.get(i) == ticketsaguardInfra.get(x).getOwner()){
+
+            for (int x = 0; x < ticketsaguardInfra.size(); x++) {
+                if (owner.get(i) == ticketsaguardInfra.get(x).getOwner()) {
                     quantaguardInfra++;
                 }
             }
 
-            for(int x = 0; x < ticketsaguardAnalis.size(); x++){
-                if(owner.get(i) == ticketsaguardAnalis.get(x).getOwner()){
+            for (int x = 0; x < ticketsaguardAnalis.size(); x++) {
+                if (owner.get(i) == ticketsaguardAnalis.get(x).getOwner()) {
                     quantaguardAnalis++;
                 }
             }
-           
-            for(int x = 0; x < ticketsemTestes.size(); x++){
-                if(owner.get(i) == ticketsemTestes.get(x).getOwner()){
+
+            for (int x = 0; x < ticketsemTestes.size(); x++) {
+                if (owner.get(i) == ticketsemTestes.get(x).getOwner()) {
                     quantemTestes++;
                 }
             }
 
-            for(int x = 0; x < ticketsaguardImpacto.size(); x++){
-                if(owner.get(i) == ticketsaguardImpacto.get(x).getOwner()){
+            for (int x = 0; x < ticketsaguardImpacto.size(); x++) {
+                if (owner.get(i) == ticketsaguardImpacto.get(x).getOwner()) {
                     quantaguardImpacto++;
                 }
             }
-            for(int x = 0; x < ticketsaguardEnVersao.size(); x++){
-                if(owner.get(i) == ticketsaguardEnVersao.get(x).getOwner()){
+            for (int x = 0; x < ticketsaguardEnVersao.size(); x++) {
+                if (owner.get(i) == ticketsaguardEnVersao.get(x).getOwner()) {
                     quantaguardEnVersao++;
                 }
             }
-            for(int x = 0; x < ticketsimpaAvaliado.size(); x++){
-                if(owner.get(i) == ticketsimpaAvaliado.get(x).getOwner()){
+            for (int x = 0; x < ticketsimpaAvaliado.size(); x++) {
+                if (owner.get(i) == ticketsimpaAvaliado.get(x).getOwner()) {
                     quantimpaAvaliado++;
                 }
             }
-            for(int x = 0; x < ticketsaguardOrcament.size(); x++){
-                if(owner.get(i) == ticketsaguardOrcament.get(x).getOwner()){
+            for (int x = 0; x < ticketsaguardOrcament.size(); x++) {
+                if (owner.get(i) == ticketsaguardOrcament.get(x).getOwner()) {
                     quantaguardOrcament++;
                 }
             }
-            for(int x = 0; x < ticketsemVerificaInter.size(); x++){
-                if(owner.get(i) == ticketsemVerificaInter.get(x).getOwner()){
+            for (int x = 0; x < ticketsemVerificaInter.size(); x++) {
+                if (owner.get(i) == ticketsemVerificaInter.get(x).getOwner()) {
                     quantemVerificaInter++;
                 }
             }
-            for(int x = 0; x < ticketsaguardCompilac.size(); x++){
-                if(owner.get(i) == ticketsaguardCompilac.get(x).getOwner()){
+            for (int x = 0; x < ticketsaguardCompilac.size(); x++) {
+                if (owner.get(i) == ticketsaguardCompilac.get(x).getOwner()) {
                     quantaguardCompilac++;
                 }
             }
-            for(int x = 0; x < ticketsemDesenvolviment.size(); x++){
-                if(owner.get(i) == ticketsemDesenvolviment.get(x).getOwner()){
+            for (int x = 0; x < ticketsemDesenvolviment.size(); x++) {
+                if (owner.get(i) == ticketsemDesenvolviment.get(x).getOwner()) {
                     quantemDesenvolviment++;
                 }
             }
-            for(int x = 0; x < ticketsaguardFaturame.size(); x++){
-                if(owner.get(i) == ticketsaguardFaturame.get(x).getOwner()){
+            for (int x = 0; x < ticketsaguardFaturame.size(); x++) {
+                if (owner.get(i) == ticketsaguardFaturame.get(x).getOwner()) {
                     quantaguardFaturame++;
                 }
             }
 
-            for(int x = 0; x < ticketsaguardInfParCli.size(); x++){
-                if(owner.get(i) == ticketsaguardInfParCli.get(x).getOwner()){
+            for (int x = 0; x < ticketsaguardInfParCli.size(); x++) {
+                if (owner.get(i) == ticketsaguardInfParCli.get(x).getOwner()) {
                     quantaguardInfParCli++;
                 }
             }
 
-            for(int x = 0; x < ticketsdesenvolvido.size(); x++){
-                if(owner.get(i) == ticketsdesenvolvido.get(x).getOwner()){
+            for (int x = 0; x < ticketsdesenvolvido.size(); x++) {
+                if (owner.get(i) == ticketsdesenvolvido.get(x).getOwner()) {
                     quantdesenvolvido++;
                 }
             }
 
-            for(int x = 0; x < ticketsaguarAprovPreAnali.size(); x++){
-                if(owner.get(i) == ticketsaguarAprovPreAnali.get(x).getOwner()){
+            for (int x = 0; x < ticketsaguarAprovPreAnali.size(); x++) {
+                if (owner.get(i) == ticketsaguarAprovPreAnali.get(x).getOwner()) {
                     quantaguarAprovPreAnali++;
                 }
             }
-            
-            for(int x = 0; x < ticketsaguarEsclaSup.size(); x++){
-                if(owner.get(i) == ticketsaguarEsclaSup.get(x).getOwner()){
+
+            for (int x = 0; x < ticketsaguarEsclaSup.size(); x++) {
+                if (owner.get(i) == ticketsaguarEsclaSup.get(x).getOwner()) {
                     quantaguarEsclaSup++;
                 }
             }
 
-            for(int x = 0; x < ticketsaguarEsclaSup.size(); x++){
-                if(owner.get(i) == ticketsaguarEsclaSup.get(x).getOwner()){
+            for (int x = 0; x < ticketsaguarEsclaSup.size(); x++) {
+                if (owner.get(i) == ticketsaguarEsclaSup.get(x).getOwner()) {
                     quantaguarEsclaSup++;
                 }
             }
 
-            for(int x = 0; x < ticketsaguarValidParc.size(); x++){
-                if(owner.get(i) == ticketsaguarValidParc.get(x).getOwner()){
+            for (int x = 0; x < ticketsaguarValidParc.size(); x++) {
+                if (owner.get(i) == ticketsaguarValidParc.get(x).getOwner()) {
                     quantaguarValidParc++;
                 }
             }
 
-            for(int x = 0; x < ticketsagendVistTecn.size(); x++){
-                if(owner.get(i) == ticketsagendVistTecn.get(x).getOwner()){
+            for (int x = 0; x < ticketsagendVistTecn.size(); x++) {
+                if (owner.get(i) == ticketsagendVistTecn.get(x).getOwner()) {
                     quantagendVistTecn++;
                 }
             }
 
-            for(int x = 0; x < ticketspreAnalAprov.size(); x++){
-                if(owner.get(i) == ticketspreAnalAprov.get(x).getOwner()){
+            for (int x = 0; x < ticketspreAnalAprov.size(); x++) {
+                if (owner.get(i) == ticketspreAnalAprov.get(x).getOwner()) {
                     quantpreAnalAprov++;
                 }
             }
 
-            for(int x = 0; x < ticketsenvAnalise.size(); x++){
-                if(owner.get(i) == ticketsenvAnalise.get(x).getOwner()){
+            for (int x = 0; x < ticketsenvAnalise.size(); x++) {
+                if (owner.get(i) == ticketsenvAnalise.get(x).getOwner()) {
                     quantenvAnalise++;
                 }
             }
 
-            for(int x = 0; x < ticketsaguarRetClien.size(); x++){
-                if(owner.get(i) == ticketsaguarRetClien.get(x).getOwner()){
+            for (int x = 0; x < ticketsaguarRetClien.size(); x++) {
+                if (owner.get(i) == ticketsaguarRetClien.get(x).getOwner()) {
                     quantaguarRetClien++;
                 }
             }
-
-            
 
             if ((quantparalisado > 0) || (quantsemjustification > 0) || (quantaguarDesenv > 0) ||
                     (quantemAnalise > 0) || (quantaguardEscla > 0) || (quantresponClien > 0) ||
@@ -762,40 +870,40 @@ public class DefaultTicketsService implements TicketsService {
                     (quantaguarRetClien > 0)) {
 
                 AgenteJustification agenteTemp = new AgenteJustification();
-                agenteTemp.idAgente = owner.get(i).getId();
-                agenteTemp.businessName = owner.get(i).getBusinessName();
-                agenteTemp.paralisado = quantparalisado;
-                agenteTemp.semjustification = quantsemjustification;
-                agenteTemp.aguarDesenv = quantaguarDesenv;
-                agenteTemp.emAnalise = quantemAnalise;
-                agenteTemp.aguardEscla = quantaguardEscla;
-                agenteTemp.responClien = quantresponClien;
-                agenteTemp.emVerificacao = quantemVerificacao;
-                agenteTemp.treinaAgendad = quanttreinaAgendad;
-                agenteTemp.aprovado = quantaprovado;
-                agenteTemp.emValidSupor = quantemValidSupor;
-                agenteTemp.aguardAtualiz = quantaguardAtualiz;
-                agenteTemp.aguardAprovac = quantaguardAprovac;
-                agenteTemp.aguardInfra = quantaguardInfra;
-                agenteTemp.aguardAnalis = quantaguardAnalis;
-                agenteTemp.emTestes = quantemTestes;
-                agenteTemp.aguardImpacto = quantaguardImpacto;
-                agenteTemp.aguardEnVersao = quantaguardEnVersao;
-                agenteTemp.impaAvaliado = quantimpaAvaliado;
-                agenteTemp.aguardOrcament = quantaguardOrcament;
-                agenteTemp.emVerificaInter = quantemVerificaInter;
-                agenteTemp.aguardCompilac = quantaguardCompilac;
-                agenteTemp.emDesenvolviment = quantemDesenvolviment;
-                agenteTemp.aguardFaturame = quantaguardFaturame;
-                agenteTemp.aguardInfParCli = quantaguardInfParCli;
-                agenteTemp.desenvolvido = quantdesenvolvido;
-                agenteTemp.aguarAprovPreAnali = quantaguarAprovPreAnali;
-                agenteTemp.aguarEsclaSup = quantaguarEsclaSup;
-                agenteTemp.aguarValidParc = quantaguarValidParc;
-                agenteTemp.agendVistTecn = quantagendVistTecn;
-                agenteTemp.preAnalAprov = quantpreAnalAprov;
-                agenteTemp.envAnalise = quantenvAnalise;
-                agenteTemp.aguarRetClien = quantaguarRetClien;
+                agenteTemp.setIdAgente(owner.get(i).getId());
+                agenteTemp.setBusinessName(owner.get(i).getBusinessName());
+                agenteTemp.setParalisado(quantparalisado);
+                agenteTemp.setSemjustification(quantsemjustification);
+                agenteTemp.setAguarDesenv(quantaguarDesenv);
+                agenteTemp.setEmAnalise(quantemAnalise);
+                agenteTemp.setAguardEscla(quantaguardEscla);
+                agenteTemp.setResponClien(quantresponClien);
+                agenteTemp.setEmVerificacao(quantemVerificacao);
+                agenteTemp.setTreinaAgendad(quanttreinaAgendad);
+                agenteTemp.setAprovado(quantaprovado);
+                agenteTemp.setEmValidSupor(quantemValidSupor);
+                agenteTemp.setAguardAtualiz(quantaguardAtualiz);
+                agenteTemp.setAguardAprovac(quantaguardAprovac);
+                agenteTemp.setAguardInfra(quantaguardInfra);
+                agenteTemp.setAguardAnalis(quantaguardAnalis);
+                agenteTemp.setEmTestes(quantemTestes);
+                agenteTemp.setAguardImpacto(quantaguardImpacto);
+                agenteTemp.setAguardEnVersao(quantaguardEnVersao);
+                agenteTemp.setImpaAvaliado(quantimpaAvaliado);
+                agenteTemp.setAguardOrcament(quantaguardOrcament);
+                agenteTemp.setEmVerificaInter(quantemVerificaInter);
+                agenteTemp.setAguardCompilac(quantaguardCompilac);
+                agenteTemp.setEmDesenvolviment(quantemDesenvolviment);
+                agenteTemp.setAguardFaturame(quantaguardFaturame);
+                agenteTemp.setAguardInfParCli(quantaguardInfParCli);
+                agenteTemp.setDesenvolvido(quantdesenvolvido);
+                agenteTemp.setAguarAprovPreAnali(quantaguarAprovPreAnali);
+                agenteTemp.setAguarEsclaSup(quantaguarEsclaSup);
+                agenteTemp.setAguarValidParc(quantaguarValidParc);
+                agenteTemp.setAgendVistTecn(quantagendVistTecn);
+                agenteTemp.setPreAnalAprov(quantpreAnalAprov);
+                agenteTemp.setEnvAnalise(quantenvAnalise);
+                agenteTemp.setAguarRetClien(quantaguarRetClien);
 
                 agentJusti.add(quantOwner, agenteTemp);
                 quantOwner++;
@@ -848,39 +956,941 @@ public class DefaultTicketsService implements TicketsService {
         List<Tickets> ticketsenvAnalise = ticketsRepository.findByJustification("Enviado para anÃ¡lise");
         List<Tickets> ticketsaguarRetClien = ticketsRepository.findByJustification("Aguardando retorno do Cliente");
 
-        justification.paralisado = ticketsparalisado.size();
-        justification.semjustification = ticketssemjustification.size();
-        justification.aguarDesenv = ticketsaguarDesenv.size();
-        justification.emAnalise = ticketsemAnalise.size();
-        justification.aguardEscla = ticketsaguardEscla.size();
-        justification.responClien = ticketsresponClien.size();
-        justification.emVerificacao = ticketsemVerificacao.size();
-        justification.treinaAgendad = ticketstreinaAgendad.size();
-        justification.aprovado = ticketsaprovado.size();
-        justification.emValidSupor = ticketsemValidSupor.size();
-        justification.aguardAtualiz = ticketsaguardAtualiz.size();
-        justification.aguardAprovac = ticketsaguardAprovac.size();
-        justification.aguardInfra = ticketsaguardInfra.size();
-        justification.aguardAnalis = ticketsaguardAnalis.size();
-        justification.emTestes = ticketsemTestes.size();
-        justification.aguardImpacto = ticketsaguardImpacto.size();
-        justification.aguardEnVersao = ticketsaguardEnVersao.size();
-        justification.impaAvaliado = ticketsimpaAvaliado.size();
-        justification.aguardOrcament = ticketsaguardOrcament.size();
-        justification.emVerificaInter = ticketsemVerificaInter.size();
-        justification.aguardCompilac = ticketsaguardCompilac.size();
-        justification.emDesenvolviment = ticketsemDesenvolviment.size();
-        justification.aguardFaturame = ticketsaguardFaturame.size();
-        justification.aguardInfParCli = ticketsaguardInfParCli.size();
-        justification.desenvolvido = ticketsdesenvolvido.size();
-        justification.aguarAprovPreAnali = ticketsaguarAprovPreAnali.size();
-        justification.aguarEsclaSup = ticketsaguarEsclaSup.size();
-        justification.aguarValidParc = ticketsaguarValidParc.size();
-        justification.agendVistTecn = ticketsagendVistTecn.size();
-        justification.preAnalAprov = ticketspreAnalAprov.size();
-        justification.envAnalise = ticketsenvAnalise.size();
-        justification.aguarRetClien = ticketsaguarRetClien.size();
+        justification.setParalisado(ticketsparalisado.size());
+        justification.setSemjustification(ticketssemjustification.size());
+        justification.setAguarDesenv(ticketsaguarDesenv.size());
+        justification.setEmAnalise(ticketsemAnalise.size());
+        justification.setAguardEscla(ticketsaguardEscla.size());
+        justification.setResponClien(ticketsresponClien.size());
+        justification.setEmVerificacao(ticketsemVerificacao.size());
+        justification.setTreinaAgendad(ticketstreinaAgendad.size());
+        justification.setAprovado(ticketsaprovado.size());
+        justification.setEmValidSupor(ticketsemValidSupor.size());
+        justification.setAguardAtualiz(ticketsaguardAtualiz.size());
+        justification.setAguardAprovac(ticketsaguardAprovac.size());
+        justification.setAguardInfra(ticketsaguardInfra.size());
+        justification.setAguardAnalis(ticketsaguardAnalis.size());
+        justification.setEmTestes(ticketsemTestes.size());
+        justification.setAguardImpacto(ticketsaguardImpacto.size());
+        justification.setAguardEnVersao(ticketsaguardEnVersao.size());
+        justification.setImpaAvaliado(ticketsimpaAvaliado.size());
+        justification.setAguardOrcament(ticketsaguardOrcament.size());
+        justification.setEmVerificaInter(ticketsemVerificaInter.size());
+        justification.setAguardCompilac(ticketsaguardCompilac.size());
+        justification.setEmDesenvolviment(ticketsemDesenvolviment.size());
+        justification.setAguardFaturame(ticketsaguardFaturame.size());
+        justification.setAguardInfParCli(ticketsaguardInfParCli.size());
+        justification.setDesenvolvido(ticketsdesenvolvido.size());
+        justification.setAguarAprovPreAnali(ticketsaguarAprovPreAnali.size());
+        justification.setAguarEsclaSup(ticketsaguarEsclaSup.size());
+        justification.setAguarValidParc(ticketsaguarValidParc.size());
+        justification.setAgendVistTecn(ticketsagendVistTecn.size());
+        justification.setPreAnalAprov(ticketspreAnalAprov.size());
+        justification.setEnvAnalise(ticketsenvAnalise.size());
+        justification.setAguarRetClien(ticketsaguarRetClien.size());
 
         return justification;
+    }
+
+    @Override
+    public List<TicketsAnos> ticketsAnos() throws MenssageNotFoundException {
+        SimpleDateFormat formatadorDia = new SimpleDateFormat("yyyy-MM-dd");
+        List<TicketsAnos> anos = new ArrayList<TicketsAnos>();
+        LocalDate current_date = LocalDate.now();
+        int anoAtual = current_date.getYear();
+        int quant = 0;
+
+        for (int x = 2013; x <= anoAtual; x++) {
+            TicketsAnos anosAux = new TicketsAnos();
+            anosAux.setAno(x);
+            java.util.Date date_Inicio = new java.util.Date();
+            java.util.Date date_Fim = new java.util.Date();
+
+            try {
+                date_Inicio = formatadorDia.parse(x + "-01-01");
+                date_Fim = formatadorDia.parse(x + "-12-31");
+            } catch (ParseException e) {
+                e.printStackTrace();
+            }
+
+            anosAux.setQuantidade(ticketsRepository.findByTicketsDateCount(date_Inicio, date_Fim));
+
+            anos.add(quant, anosAux);
+            quant++;
+        }
+        return anos;
+    }
+
+    @Override
+    public List<TicketsAnosCategory> ticketsAnosCategory() throws MenssageNotFoundException {
+        SimpleDateFormat formatadorDia = new SimpleDateFormat("yyyy-MM-dd");
+        List<TicketsAnosCategory> anos = new ArrayList<TicketsAnosCategory>();
+        LocalDate current_date = LocalDate.now();
+        int anoAtual = current_date.getYear();
+        int quant = 0;
+
+        for (int x = 2013; x <= anoAtual; x++) {
+            TicketsAnosCategory anosAux = new TicketsAnosCategory();
+            anosAux.setAnos(x);
+            java.util.Date date_Inicio = new java.util.Date();
+            java.util.Date date_Fim = new java.util.Date();
+
+            try {
+                date_Inicio = formatadorDia.parse(x + "-01-01");
+                date_Fim = formatadorDia.parse(x + "-12-31");
+            } catch (ParseException e) {
+                e.printStackTrace();
+            }
+
+            Category category = new Category();
+            category.setCustomizacao(0);
+            category.setDuvida(0);
+            category.setFalha(0);
+            category.setHomologacao(0);
+            category.setImplantacao(0);
+            category.setLicitacao(0);
+            category.setSemCategoria(0);
+            category.setSolicitacaoServico(0);
+            category.setSolicitacaoTreinamento(0);
+            category.setSugestao(0);
+            category.setTreinamentoOnline(0);
+
+            List<Tickets> tickets = ticketsRepository.findByTicketsDate(date_Inicio, date_Fim);
+
+            for (int i = 0; i < tickets.size(); i++) {
+                if (tickets.get(i).getCategory() == null) {
+                    category.setSemCategoria(category.getSemCategoria() + 1);
+                } else if (tickets.get(i).getCategory().equals("CustomizaÃ§Ã£o")) {
+                    category.setCustomizacao(category.getCustomizacao() + 1);
+                } else if (tickets.get(i).getCategory().equals("DÃºvida")) {
+                    category.setDuvida(category.getDuvida() + 1);
+                } else if (tickets.get(i).getCategory().equals("Falha")) {
+                    category.setFalha(category.getFalha() + 1);
+                } else if (tickets.get(i).getCategory().equals("HomologaÃ§Ã£o")) {
+                    category.setHomologacao(category.getHomologacao() + 1);
+                } else if (tickets.get(i).getCategory().equals("SolicitaÃ§Ã£o de ImplantaÃ§Ã£o")) {
+                    category.setImplantacao(category.getImplantacao() + 1);
+                } else if (tickets.get(i).getCategory().equals("LicitaÃ§Ã£o")) {
+                    category.setLicitacao(category.getLicitacao() + 1);
+                } else
+
+                if (tickets.get(i).getCategory().equals("SolicitaÃ§Ã£o de ServiÃ§o")) {
+                    category.setSolicitacaoServico(category.getSolicitacaoServico() + 1);
+                } else if (tickets.get(i).getCategory().equals("SugestÃ£o")) {
+                    category.setSugestao(category.getSugestao() + 1);
+                } else if (tickets.get(i).getCategory().equals("SolicitaÃ§Ã£o de Treinamento")) {
+                    category.setSolicitacaoTreinamento(category.getSolicitacaoTreinamento() + 1);
+                } else if (tickets.get(i).getCategory().equals("SolicitaÃ§Ã£o de Treinamento Online (Remoto)")) {
+                    category.setTreinamentoOnline(category.getTreinamentoOnline() + 1);
+                }
+            }
+            anosAux.setCategory(category);
+
+            anos.add(quant, anosAux);
+            quant++;
+        }
+        return anos;
+    }
+
+    @Override
+    public List<TicketsMesesDias> ticketsMesesCategory() throws MenssageNotFoundException {
+        List<TicketsMesesDias> meses = new ArrayList<TicketsMesesDias>();
+        SimpleDateFormat formatadorDia = new SimpleDateFormat("yyyy-MM-dd");
+        boolean end = true;
+
+        LocalDate current_date = LocalDate.now();
+        LocalDate data_anterior = current_date.minusMonths(12);
+        int anoAtual = current_date.getYear();
+        int mesAtual = current_date.getMonthValue();
+        int ano = data_anterior.getYear();
+        int mes = data_anterior.getMonthValue();
+        int diafinal = 1;
+        int quant = 0;
+        while (end) {
+            TicketsMesesDias mesesAux = new TicketsMesesDias();
+            mesesAux.setMesesDia(retornaMes(mes) + "/" + ano);
+            java.util.Date date_Inicio = new java.util.Date();
+            java.util.Date date_Fim = new java.util.Date();
+            diafinal = retornaUltimoDiaMes(mes);
+
+            try {
+                date_Inicio = formatadorDia.parse(ano + "-" + mes + "-01");
+                date_Fim = formatadorDia.parse(ano + "-" + mes + "-" + diafinal);
+            } catch (ParseException e) {
+                e.printStackTrace();
+            }
+
+            Category category = new Category();
+            category.setCustomizacao(0);
+            category.setDuvida(0);
+            category.setFalha(0);
+            category.setHomologacao(0);
+            category.setImplantacao(0);
+            category.setLicitacao(0);
+            category.setSemCategoria(0);
+            category.setSolicitacaoServico(0);
+            category.setSolicitacaoTreinamento(0);
+            category.setSugestao(0);
+            category.setTreinamentoOnline(0);
+
+            List<Tickets> tickets = ticketsRepository.findByTicketsDate(date_Inicio, date_Fim);
+            mesesAux.setQuantidade(tickets.size());
+            for (int i = 0; i < tickets.size(); i++) {
+                if (tickets.get(i).getCategory() == null) {
+                    category.setSemCategoria(category.getSemCategoria() + 1);
+                } else if (tickets.get(i).getCategory().equals("CustomizaÃ§Ã£o")) {
+                    category.setCustomizacao(category.getCustomizacao() + 1);
+                } else if (tickets.get(i).getCategory().equals("DÃºvida")) {
+                    category.setDuvida(category.getDuvida() + 1);
+                } else if (tickets.get(i).getCategory().equals("Falha")) {
+                    category.setFalha(category.getFalha() + 1);
+                } else if (tickets.get(i).getCategory().equals("HomologaÃ§Ã£o")) {
+                    category.setHomologacao(category.getHomologacao() + 1);
+                } else if (tickets.get(i).getCategory().equals("SolicitaÃ§Ã£o de ImplantaÃ§Ã£o")) {
+                    category.setImplantacao(category.getImplantacao() + 1);
+                } else if (tickets.get(i).getCategory().equals("LicitaÃ§Ã£o")) {
+                    category.setLicitacao(category.getLicitacao() + 1);
+                } else
+
+                if (tickets.get(i).getCategory().equals("SolicitaÃ§Ã£o de ServiÃ§o")) {
+                    category.setSolicitacaoServico(category.getSolicitacaoServico() + 1);
+                } else if (tickets.get(i).getCategory().equals("SugestÃ£o")) {
+                    category.setSugestao(category.getSugestao() + 1);
+                } else if (tickets.get(i).getCategory().equals("SolicitaÃ§Ã£o de Treinamento")) {
+                    category.setSolicitacaoTreinamento(category.getSolicitacaoTreinamento() + 1);
+                } else if (tickets.get(i).getCategory().equals("SolicitaÃ§Ã£o de Treinamento Online (Remoto)")) {
+                    category.setTreinamentoOnline(category.getTreinamentoOnline() + 1);
+                }
+            }
+            mesesAux.setCategory(category);
+            meses.add(quant, mesesAux);
+            quant++;
+            if ((anoAtual == ano) && (mesAtual == mes)) {
+                end = false;
+            } else {
+                if (mes < 12) {
+                    mes++;
+                } else {
+                    mes = 1;
+                    ano++;
+                }
+            }
+        }
+        return meses;
+    }
+
+    public String retornaMes(int mes) {
+        String meses = "";
+        switch (mes) {
+            case 1:
+                return "Janeiro";
+            case 2:
+                return "Fevereiro";
+            case 3:
+                return "Março";
+            case 4:
+                return "Abril";
+            case 5:
+                return "Maio";
+            case 6:
+                return "Junho";
+            case 7:
+                return "Julho";
+            case 8:
+                return "Agosto";
+            case 9:
+                return "Setembro";
+            case 10:
+                return "Outubro";
+            case 11:
+                return "Novembro";
+            case 12:
+                return "Dezembro";
+        }
+        return meses;
+    }
+
+    public int retornaUltimoDiaMes(int mes) {
+
+        switch (mes) {
+            case 1:
+                return 31;
+
+            case 2:
+                return 28;
+
+            case 3:
+                return 31;
+
+            case 4:
+                return 30;
+
+            case 5:
+                return 31;
+
+            case 6:
+                return 30;
+
+            case 7:
+                return 31;
+
+            case 8:
+                return 31;
+
+            case 9:
+                return 30;
+
+            case 10:
+                return 31;
+
+            case 11:
+                return 30;
+
+            case 12:
+                return 31;
+
+        }
+        return 1;
+    }
+
+    @Override
+    public TicketsSituacao getTicketsbaseStatusSUMDate() throws MenssageNotFoundException {
+        SimpleDateFormat formatadorDia = new SimpleDateFormat("yyyy-MM-dd");
+        TicketsSituacao sum = new TicketsSituacao();
+
+        LocalDate current_date = LocalDate.now();
+        LocalDate data_inicio = current_date.minusDays(7);
+        int anoAtual = current_date.getYear();
+        int mesAtual = current_date.getMonthValue();
+        int diaAtual = current_date.getDayOfMonth();
+        int ano_anterior = data_inicio.getYear();
+        int mes_anterior = data_inicio.getMonthValue();
+        int dia_anterior = data_inicio.getDayOfMonth();
+
+        java.util.Date date_Inicio = new java.util.Date();
+        java.util.Date date_Fim = new java.util.Date();
+
+        try {
+            date_Inicio = formatadorDia.parse(ano_anterior + "-" + mes_anterior + "-" + dia_anterior);
+            date_Fim = formatadorDia.parse(anoAtual + "-" + mesAtual + "-" + diaAtual);
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
+
+        List<Tickets> listTickets = new ArrayList<Tickets>();
+
+        listTickets = ticketsRepository.findBybaseStatusDate("Canceled", date_Inicio, date_Fim);
+        sum.setCanceled(listTickets.size());
+
+        listTickets = ticketsRepository.findBybaseStatusDate("Closed", date_Inicio, date_Fim);
+        sum.setClosed(listTickets.size());
+
+        listTickets = ticketsRepository.findBybaseStatusDate("InAttendance", date_Inicio, date_Fim);
+        sum.setInAttendance(listTickets.size());
+
+        listTickets = ticketsRepository.findBybaseStatusDate("New", date_Inicio, date_Fim);
+        sum.setNewReg(listTickets.size());
+
+        listTickets = ticketsRepository.findBybaseStatusDate("Resolved", date_Inicio, date_Fim);
+        sum.setResolved(listTickets.size());
+
+        listTickets = ticketsRepository.findBybaseStatusDate("Stopped", date_Inicio, date_Fim);
+        sum.setStopped(listTickets.size());
+        return sum;
+    }
+
+    @Override
+    public TicketsUrgency getTicketsUrgencySUMDate() throws MenssageNotFoundException {
+        SimpleDateFormat formatadorDia = new SimpleDateFormat("yyyy-MM-dd");
+        TicketsUrgency sum = new TicketsUrgency();
+        List<Tickets> listTickets = new ArrayList<Tickets>();
+
+        LocalDate current_date = LocalDate.now();
+        LocalDate data_inicio = current_date.minusDays(7);
+        int anoAtual = current_date.getYear();
+        int mesAtual = current_date.getMonthValue();
+        int diaAtual = current_date.getDayOfMonth();
+        int ano_anterior = data_inicio.getYear();
+        int mes_anterior = data_inicio.getMonthValue();
+        int dia_anterior = data_inicio.getDayOfMonth();
+
+        java.util.Date date_Inicio = new java.util.Date();
+        java.util.Date date_Fim = new java.util.Date();
+
+        try {
+            date_Inicio = formatadorDia.parse(ano_anterior + "-" + mes_anterior + "-" + dia_anterior);
+            date_Fim = formatadorDia.parse(anoAtual + "-" + mesAtual + "-" + diaAtual);
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
+
+        listTickets = ticketsRepository.findByUrgencyDate("2 - Alta", date_Inicio, date_Fim);
+        sum.setAlta(listTickets.size());
+
+        listTickets = ticketsRepository.findByUrgencyDate("4 - Baixa", date_Inicio, date_Fim);
+        sum.setBaixa(listTickets.size());
+
+        listTickets = ticketsRepository.findByUrgencyDate("3 - MÃ©dia", date_Inicio, date_Fim);
+        sum.setMedia(listTickets.size());
+
+        listTickets = ticketsRepository.findByUrgencyIsNullDate(date_Inicio, date_Fim);
+        sum.setNulo(listTickets.size());
+
+        listTickets = ticketsRepository.findByUrgencyDate("1 - Urgente", date_Inicio, date_Fim);
+        sum.setUrgente(listTickets.size());
+
+        return sum;
+    }
+
+    @Override
+    public Category CategorySeven() throws MenssageNotFoundException {
+        SimpleDateFormat formatadorDia = new SimpleDateFormat("yyyy-MM-dd");
+        Category cat = new Category();
+
+        LocalDate current_date = LocalDate.now();
+        LocalDate data_inicio = current_date.minusDays(7);
+        int anoAtual = current_date.getYear();
+        int mesAtual = current_date.getMonthValue();
+        int diaAtual = current_date.getDayOfMonth();
+        int ano_anterior = data_inicio.getYear();
+        int mes_anterior = data_inicio.getMonthValue();
+        int dia_anterior = data_inicio.getDayOfMonth();
+
+        java.util.Date date_Inicio = new java.util.Date();
+        java.util.Date date_Fim = new java.util.Date();
+
+        try {
+            date_Inicio = formatadorDia.parse(ano_anterior + "-" + mes_anterior + "-" + dia_anterior);
+            date_Fim = formatadorDia.parse(anoAtual + "-" + mesAtual + "-" + diaAtual);
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
+
+        List<Tickets> ticketsCustomizacao = ticketsRepository.findByCategoryDate("CustomizaÃ§Ã£o", date_Inicio,
+                date_Fim);
+        List<Tickets> ticketsDuvida = ticketsRepository.findByCategoryDate("DÃºvida", date_Inicio, date_Fim);
+        List<Tickets> ticketsFalha = ticketsRepository.findByCategoryDate("Falha", date_Inicio, date_Fim);
+        List<Tickets> ticketsHomologacao = ticketsRepository.findByCategoryDate("HomologaÃ§Ã£o", date_Inicio, date_Fim);
+        List<Tickets> ticketsImplantacao = ticketsRepository.findByCategoryDate("SolicitaÃ§Ã£o de ImplantaÃ§Ã£o",
+                date_Inicio, date_Fim);
+        List<Tickets> ticketsLicitacao = ticketsRepository.findByCategoryDate("LicitaÃ§Ã£o", date_Inicio, date_Fim);
+        List<Tickets> ticketsSemCategoria = ticketsRepository.findBySemCategoryDate(date_Inicio, date_Fim);
+        List<Tickets> ticketsServico = ticketsRepository.findByCategoryDate("SolicitaÃ§Ã£o de ServiÃ§o", date_Inicio,
+                date_Fim);
+        List<Tickets> ticketsSugestao = ticketsRepository.findByCategoryDate("SugestÃ£o", date_Inicio, date_Fim);
+        List<Tickets> ticketsTreinamento = ticketsRepository.findByCategoryDate("SolicitaÃ§Ã£o de Treinamento",
+                date_Inicio, date_Fim);
+        List<Tickets> ticketsTreinamentoRemoto = ticketsRepository
+                .findByCategoryDate("SolicitaÃ§Ã£o de Treinamento Online (Remoto)", date_Inicio, date_Fim);
+
+        cat.setCustomizacao(ticketsCustomizacao.size());
+        cat.setDuvida(ticketsDuvida.size());
+        cat.setFalha(ticketsFalha.size());
+        cat.setHomologacao(ticketsHomologacao.size());
+        cat.setImplantacao(ticketsImplantacao.size());
+        cat.setLicitacao(ticketsLicitacao.size());
+        cat.setSemCategoria(ticketsSemCategoria.size());
+        cat.setSolicitacaoServico(ticketsServico.size());
+        cat.setSugestao(ticketsSugestao.size());
+        cat.setSolicitacaoTreinamento(ticketsTreinamento.size());
+        cat.setTreinamentoOnline(ticketsTreinamentoRemoto.size());
+
+        return cat;
+    }
+
+    @Override
+    public List<AgenteTickets> OwnerTicketsSeven() throws MenssageNotFoundException {
+        SimpleDateFormat formatadorDia = new SimpleDateFormat("yyyy-MM-dd");
+        List<AgenteTickets> agente = new ArrayList<AgenteTickets>();
+
+        List<Owner> owner = ownerRepository.listAll(Sort.ascending("businessname"));
+
+        LocalDate current_date = LocalDate.now();
+        LocalDate data_inicio = current_date.minusDays(7);
+        int anoAtual = current_date.getYear();
+        int mesAtual = current_date.getMonthValue();
+        int diaAtual = current_date.getDayOfMonth();
+        int ano_anterior = data_inicio.getYear();
+        int mes_anterior = data_inicio.getMonthValue();
+        int dia_anterior = data_inicio.getDayOfMonth();
+
+        java.util.Date date_Inicio = new java.util.Date();
+        java.util.Date date_Fim = new java.util.Date();
+
+        try {
+            date_Inicio = formatadorDia.parse(ano_anterior + "-" + mes_anterior + "-" + dia_anterior);
+            date_Fim = formatadorDia.parse(anoAtual + "-" + mesAtual + "-" + diaAtual);
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
+
+        List<Tickets> ticketsInAttendance = ticketsRepository.findBybaseStatusDate("InAttendance", date_Inicio,
+                date_Fim);
+        List<Tickets> ticketsNew = ticketsRepository.findBybaseStatusDate("New", date_Inicio, date_Fim);
+        List<Tickets> ticketsStopped = ticketsRepository.findBybaseStatusDate("Stopped", date_Inicio, date_Fim);
+        List<Tickets> ticketsCanceled = ticketsRepository.findBybaseStatusDate("Canceled", date_Inicio, date_Fim);
+        List<Tickets> ticketsResolved = ticketsRepository.findBybaseStatusDate("Resolved", date_Inicio, date_Fim);
+        List<Tickets> ticketsClosed = ticketsRepository.findBybaseStatusDate("Closed", date_Inicio, date_Fim);
+
+        int quantOwner = 0;
+
+        for (int i = 0; i < owner.size(); i++) {
+
+            long quantInAttendance = 0;
+            long quantNew = 0;
+            long quantStopped = 0;
+            long quantCanceled = 0;
+            long quantResolved = 0;
+            long quantClosed = 0;
+
+            for (int x = 0; x < ticketsInAttendance.size(); x++) {
+                if (owner.get(i) == ticketsInAttendance.get(x).getOwner()) {
+                    quantInAttendance++;
+                }
+            }
+
+            for (int x = 0; x < ticketsNew.size(); x++) {
+                if (owner.get(i) == ticketsNew.get(x).getOwner()) {
+                    quantNew++;
+                }
+            }
+
+            for (int x = 0; x < ticketsStopped.size(); x++) {
+                if (owner.get(i) == ticketsStopped.get(x).getOwner()) {
+                    quantStopped++;
+                }
+            }
+
+            for (int x = 0; x < ticketsCanceled.size(); x++) {
+                if (owner.get(i) == ticketsCanceled.get(x).getOwner()) {
+                    quantCanceled++;
+                }
+            }
+
+            for (int x = 0; x < ticketsResolved.size(); x++) {
+                if (owner.get(i) == ticketsResolved.get(x).getOwner()) {
+                    quantResolved++;
+                }
+            }
+
+            for (int x = 0; x < ticketsClosed.size(); x++) {
+                if (owner.get(i) == ticketsClosed.get(x).getOwner()) {
+                    quantClosed++;
+                }
+            }
+
+            if ((quantInAttendance > 0) || (quantNew > 0) || (quantStopped > 0)) {
+
+                AgenteTickets agenteTemp = new AgenteTickets();
+                agenteTemp.setIdAgente(owner.get(i).getId());
+                agenteTemp.setBusinessName(owner.get(i).getBusinessName());
+                agenteTemp.setQuantTicketsInAttendance(quantInAttendance);
+                agenteTemp.setQuantTicketsNew(quantNew);
+                agenteTemp.setQuantTicketsStopped(quantStopped);
+                agenteTemp.setQuantTicketsCanceled(quantCanceled);
+                agenteTemp.setQuantTicketsResolved(quantResolved);
+                agenteTemp.setQuantTicketsClosed(quantClosed);
+
+                agente.add(quantOwner, agenteTemp);
+
+                quantOwner++;
+            }
+        }
+
+        return agente;
+    }
+
+    @Override
+    public List<TicketsMesesDias> ticketsSevenCategory() throws MenssageNotFoundException {
+        List<TicketsMesesDias> meses = new ArrayList<TicketsMesesDias>();
+        SimpleDateFormat formatadorDia = new SimpleDateFormat("yyyy-MM-dd");
+
+        LocalDate current_date = LocalDate.now();
+
+        for (int x = 0; x <= 7; x++) {
+            TicketsMesesDias mesesAux = new TicketsMesesDias();
+
+            LocalDate data_inicio = current_date.minusDays((7 - x));
+            int ano_anterior = data_inicio.getYear();
+            int mes_anterior = data_inicio.getMonthValue();
+            int dia_anterior = data_inicio.getDayOfMonth();
+
+            mesesAux.setMesesDia(dia_anterior + "/" + retornaMes(mes_anterior));
+            java.util.Date date_Inicio = new java.util.Date();
+            java.util.Date date_Fim = new java.util.Date();
+
+            try {
+                date_Inicio = formatadorDia.parse(ano_anterior + "-" + mes_anterior + "-" + dia_anterior);
+                date_Fim = formatadorDia.parse(ano_anterior + "-" + mes_anterior + "-" + dia_anterior);
+            } catch (ParseException e) {
+                e.printStackTrace();
+            }
+
+            Category category = new Category();
+            category.setCustomizacao(0);
+            category.setDuvida(0);
+            category.setFalha(0);
+            category.setHomologacao(0);
+            category.setImplantacao(0);
+            category.setLicitacao(0);
+            category.setSemCategoria(0);
+            category.setSolicitacaoServico(0);
+            category.setSolicitacaoTreinamento(0);
+            category.setSugestao(0);
+            category.setTreinamentoOnline(0);
+
+            List<Tickets> tickets = ticketsRepository.findByTicketsDate(date_Inicio, date_Fim);
+            mesesAux.setQuantidade(tickets.size());
+            for (int i = 0; i < tickets.size(); i++) {
+                if (tickets.get(i).getCategory() == null) {
+                    category.setSemCategoria(category.getSemCategoria() + 1);
+                } else if (tickets.get(i).getCategory().equals("CustomizaÃ§Ã£o")) {
+                    category.setCustomizacao(category.getCustomizacao() + 1);
+                } else if (tickets.get(i).getCategory().equals("DÃºvida")) {
+                    category.setDuvida(category.getDuvida() + 1);
+                } else if (tickets.get(i).getCategory().equals("Falha")) {
+                    category.setFalha(category.getFalha() + 1);
+                } else if (tickets.get(i).getCategory().equals("HomologaÃ§Ã£o")) {
+                    category.setHomologacao(category.getHomologacao() + 1);
+                } else if (tickets.get(i).getCategory().equals("SolicitaÃ§Ã£o de ImplantaÃ§Ã£o")) {
+                    category.setImplantacao(category.getImplantacao() + 1);
+                } else if (tickets.get(i).getCategory().equals("LicitaÃ§Ã£o")) {
+                    category.setLicitacao(category.getLicitacao() + 1);
+                } else
+
+                if (tickets.get(i).getCategory().equals("SolicitaÃ§Ã£o de ServiÃ§o")) {
+                    category.setSolicitacaoServico(category.getSolicitacaoServico() + 1);
+                } else if (tickets.get(i).getCategory().equals("SugestÃ£o")) {
+                    category.setSugestao(category.getSugestao() + 1);
+                } else if (tickets.get(i).getCategory().equals("SolicitaÃ§Ã£o de Treinamento")) {
+                    category.setSolicitacaoTreinamento(category.getSolicitacaoTreinamento() + 1);
+                } else if (tickets.get(i).getCategory().equals("SolicitaÃ§Ã£o de Treinamento Online (Remoto)")) {
+                    category.setTreinamentoOnline(category.getTreinamentoOnline() + 1);
+                }
+            }
+            mesesAux.setCategory(category);
+            meses.add(x, mesesAux);
+        }
+        return meses;
+    }
+
+    @Override
+    public Category CategoryDay() throws MenssageNotFoundException {
+        SimpleDateFormat formatadorDia = new SimpleDateFormat("yyyy-MM-dd");
+        Category cat = new Category();
+
+        LocalDate current_date = LocalDate.now();
+        int anoAtual = current_date.getYear();
+        int mesAtual = current_date.getMonthValue();
+        int diaAtual = current_date.getDayOfMonth();
+
+        java.util.Date date_Fim = new java.util.Date();
+
+        try {
+            date_Fim = formatadorDia.parse(anoAtual + "-" + mesAtual + "-" + diaAtual);
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
+
+        List<Tickets> ticketsCustomizacao = ticketsRepository.findByCategoryDate("CustomizaÃ§Ã£o", date_Fim, date_Fim);
+        List<Tickets> ticketsDuvida = ticketsRepository.findByCategoryDate("DÃºvida", date_Fim, date_Fim);
+        List<Tickets> ticketsFalha = ticketsRepository.findByCategoryDate("Falha", date_Fim, date_Fim);
+        List<Tickets> ticketsHomologacao = ticketsRepository.findByCategoryDate("HomologaÃ§Ã£o", date_Fim, date_Fim);
+        List<Tickets> ticketsImplantacao = ticketsRepository.findByCategoryDate("SolicitaÃ§Ã£o de ImplantaÃ§Ã£o",
+                date_Fim, date_Fim);
+        List<Tickets> ticketsLicitacao = ticketsRepository.findByCategoryDate("LicitaÃ§Ã£o", date_Fim, date_Fim);
+        List<Tickets> ticketsSemCategoria = ticketsRepository.findBySemCategoryDate(date_Fim, date_Fim);
+        List<Tickets> ticketsServico = ticketsRepository.findByCategoryDate("SolicitaÃ§Ã£o de ServiÃ§o", date_Fim,
+                date_Fim);
+        List<Tickets> ticketsSugestao = ticketsRepository.findByCategoryDate("SugestÃ£o", date_Fim, date_Fim);
+        List<Tickets> ticketsTreinamento = ticketsRepository.findByCategoryDate("SolicitaÃ§Ã£o de Treinamento",
+                date_Fim, date_Fim);
+        List<Tickets> ticketsTreinamentoRemoto = ticketsRepository
+                .findByCategoryDate("SolicitaÃ§Ã£o de Treinamento Online (Remoto)", date_Fim, date_Fim);
+
+        cat.setCustomizacao(ticketsCustomizacao.size());
+        cat.setDuvida(ticketsDuvida.size());
+        cat.setFalha(ticketsFalha.size());
+        cat.setHomologacao(ticketsHomologacao.size());
+        cat.setImplantacao(ticketsImplantacao.size());
+        cat.setLicitacao(ticketsLicitacao.size());
+        cat.setSemCategoria(ticketsSemCategoria.size());
+        cat.setSolicitacaoServico(ticketsServico.size());
+        cat.setSugestao(ticketsSugestao.size());
+        cat.setSolicitacaoTreinamento(ticketsTreinamento.size());
+        cat.setTreinamentoOnline(ticketsTreinamentoRemoto.size());
+
+        return cat;
+    }
+
+    @Override
+    public TicketsSituacao getTicketsbaseStatusSUMDay() throws MenssageNotFoundException {
+        SimpleDateFormat formatadorDia = new SimpleDateFormat("yyyy-MM-dd");
+        TicketsSituacao sum = new TicketsSituacao();
+
+        LocalDate current_date = LocalDate.now();
+        int anoAtual = current_date.getYear();
+        int mesAtual = current_date.getMonthValue();
+        int diaAtual = current_date.getDayOfMonth();
+
+        java.util.Date date_Fim = new java.util.Date();
+
+        try {
+            date_Fim = formatadorDia.parse(anoAtual + "-" + mesAtual + "-" + diaAtual);
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
+
+        List<Tickets> listTickets = new ArrayList<Tickets>();
+
+        listTickets = ticketsRepository.findBybaseStatusDate("Canceled", date_Fim, date_Fim);
+        sum.setCanceled(listTickets.size());
+
+        listTickets = ticketsRepository.findBybaseStatusDate("Closed", date_Fim, date_Fim);
+        sum.setClosed(listTickets.size());
+
+        listTickets = ticketsRepository.findBybaseStatusDate("InAttendance", date_Fim, date_Fim);
+        sum.setInAttendance(listTickets.size());
+
+        listTickets = ticketsRepository.findBybaseStatusDate("New", date_Fim, date_Fim);
+        sum.setNewReg(listTickets.size());
+
+        listTickets = ticketsRepository.findBybaseStatusDate("Resolved", date_Fim, date_Fim);
+        sum.setResolved(listTickets.size());
+
+        listTickets = ticketsRepository.findBybaseStatusDate("Stopped", date_Fim, date_Fim);
+        sum.setStopped(listTickets.size());
+        return sum;
+    }
+
+    @Override
+    public TicketsUrgency getTicketsUrgencySUMDay() throws MenssageNotFoundException {
+        SimpleDateFormat formatadorDia = new SimpleDateFormat("yyyy-MM-dd");
+        TicketsUrgency sum = new TicketsUrgency();
+        List<Tickets> listTickets = new ArrayList<Tickets>();
+
+        LocalDate current_date = LocalDate.now();
+        int anoAtual = current_date.getYear();
+        int mesAtual = current_date.getMonthValue();
+        int diaAtual = current_date.getDayOfMonth();
+
+        java.util.Date date_Fim = new java.util.Date();
+
+        try {
+            date_Fim = formatadorDia.parse(anoAtual + "-" + mesAtual + "-" + diaAtual);
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
+
+        listTickets = ticketsRepository.findByUrgencyDate("2 - Alta", date_Fim, date_Fim);
+        sum.setAlta(listTickets.size());
+
+        listTickets = ticketsRepository.findByUrgencyDate("4 - Baixa", date_Fim, date_Fim);
+        sum.setBaixa(listTickets.size());
+
+        listTickets = ticketsRepository.findByUrgencyDate("3 - MÃ©dia", date_Fim, date_Fim);
+        sum.setMedia(listTickets.size());
+
+        listTickets = ticketsRepository.findByUrgencyIsNullDate(date_Fim, date_Fim);
+        sum.setNulo(listTickets.size());
+
+        listTickets = ticketsRepository.findByUrgencyDate("1 - Urgente", date_Fim, date_Fim);
+        sum.setUrgente(listTickets.size());
+
+        return sum;
+    }
+
+    @Override
+    public List<AgenteTickets> OwnerTicketsDay() throws MenssageNotFoundException {
+        SimpleDateFormat formatadorDia = new SimpleDateFormat("yyyy-MM-dd");
+        List<AgenteTickets> agente = new ArrayList<AgenteTickets>();
+
+        List<Owner> owner = ownerRepository.listAll(Sort.ascending("businessname"));
+
+        LocalDate current_date = LocalDate.now();
+        int anoAtual = current_date.getYear();
+        int mesAtual = current_date.getMonthValue();
+        int diaAtual = current_date.getDayOfMonth();
+
+        java.util.Date date_Fim = new java.util.Date();
+
+        try {
+            date_Fim = formatadorDia.parse(anoAtual + "-" + mesAtual + "-" + diaAtual);
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
+
+        List<Tickets> ticketsInAttendance = ticketsRepository.findBybaseStatusDate("InAttendance", date_Fim, date_Fim);
+        List<Tickets> ticketsNew = ticketsRepository.findBybaseStatusDate("New", date_Fim, date_Fim);
+        List<Tickets> ticketsStopped = ticketsRepository.findBybaseStatusDate("Stopped", date_Fim, date_Fim);
+        List<Tickets> ticketsCanceled = ticketsRepository.findBybaseStatusDate("Canceled", date_Fim, date_Fim);
+        List<Tickets> ticketsResolved = ticketsRepository.findBybaseStatusDate("Resolved", date_Fim, date_Fim);
+        List<Tickets> ticketsClosed = ticketsRepository.findBybaseStatusDate("Closed", date_Fim, date_Fim);
+
+        int quantOwner = 0;
+
+        for (int i = 0; i < owner.size(); i++) {
+
+            long quantInAttendance = 0;
+            long quantNew = 0;
+            long quantStopped = 0;
+            long quantCanceled = 0;
+            long quantResolved = 0;
+            long quantClosed = 0;
+
+            for (int x = 0; x < ticketsInAttendance.size(); x++) {
+                if (owner.get(i) == ticketsInAttendance.get(x).getOwner()) {
+                    quantInAttendance++;
+                }
+            }
+
+            for (int x = 0; x < ticketsNew.size(); x++) {
+                if (owner.get(i) == ticketsNew.get(x).getOwner()) {
+                    quantNew++;
+                }
+            }
+
+            for (int x = 0; x < ticketsStopped.size(); x++) {
+                if (owner.get(i) == ticketsStopped.get(x).getOwner()) {
+                    quantStopped++;
+                }
+            }
+
+            for (int x = 0; x < ticketsCanceled.size(); x++) {
+                if (owner.get(i) == ticketsCanceled.get(x).getOwner()) {
+                    quantCanceled++;
+                }
+            }
+
+            for (int x = 0; x < ticketsResolved.size(); x++) {
+                if (owner.get(i) == ticketsResolved.get(x).getOwner()) {
+                    quantResolved++;
+                }
+            }
+
+            for (int x = 0; x < ticketsClosed.size(); x++) {
+                if (owner.get(i) == ticketsClosed.get(x).getOwner()) {
+                    quantClosed++;
+                }
+            }
+
+            if ((quantInAttendance > 0) || (quantNew > 0) || (quantStopped > 0)) {
+
+                AgenteTickets agenteTemp = new AgenteTickets();
+                agenteTemp.setIdAgente(owner.get(i).getId());
+                agenteTemp.setBusinessName(owner.get(i).getBusinessName());
+                agenteTemp.setQuantTicketsInAttendance(quantInAttendance);
+                agenteTemp.setQuantTicketsNew(quantNew);
+                agenteTemp.setQuantTicketsStopped(quantStopped);
+                agenteTemp.setQuantTicketsCanceled(quantCanceled);
+                agenteTemp.setQuantTicketsResolved(quantResolved);
+                agenteTemp.setQuantTicketsClosed(quantClosed);
+
+                agente.add(quantOwner, agenteTemp);
+
+                quantOwner++;
+            }
+        }
+
+        return agente;
+    }
+
+    @Override
+    public List<TicketsMesesDias> ticketsDayCategory() throws MenssageNotFoundException {
+        List<TicketsMesesDias> meses = new ArrayList<TicketsMesesDias>();
+        SimpleDateFormat formatadorDia = new SimpleDateFormat("yyyy-MM-dd");
+        SimpleDateFormat formatadorTime = new SimpleDateFormat("HH:mm:ss");
+        int quant = 0;
+        LocalDate current_date = LocalDate.now();
+
+        for (int x = 0; x <= 23; x++) {
+            TicketsMesesDias mesesAux = new TicketsMesesDias();
+
+            int ano_anterior = current_date.getYear();
+            int mes_anterior = current_date.getMonthValue();
+            int dia_anterior = current_date.getDayOfMonth();
+            String horainicial = "";
+            if (x < 10) {
+                horainicial = "0" + x;
+            } else {
+                horainicial = "" + x;
+            }
+
+            mesesAux.setMesesDia(horainicial + ":00:00");
+            java.util.Date date_Fim = new java.util.Date();
+            java.util.Date time_inicio = new java.util.Date();
+            java.util.Date time_fim = new java.util.Date();
+
+            try {
+                time_inicio = formatadorTime.parse(horainicial + ":00:00");
+                time_fim = formatadorTime.parse(horainicial + ":59:59");
+            } catch (ParseException e) {
+                e.printStackTrace();
+            }
+
+            Time tm_inicio = new Time(time_inicio.getTime());
+            Time tm_fim = new Time(time_fim.getTime());
+
+            try {
+                date_Fim = formatadorDia.parse(ano_anterior + "-" + mes_anterior + "-" + dia_anterior);
+            } catch (ParseException e) {
+                e.printStackTrace();
+            }
+
+            Category category = new Category();
+            category.setCustomizacao(0);
+            category.setDuvida(0);
+            category.setFalha(0);
+            category.setHomologacao(0);
+            category.setImplantacao(0);
+            category.setLicitacao(0);
+            category.setSemCategoria(0);
+            category.setSolicitacaoServico(0);
+            category.setSolicitacaoTreinamento(0);
+            category.setSugestao(0);
+            category.setTreinamentoOnline(0);
+
+            List<Tickets> tickets = ticketsRepository.findByTicketsDateTime(date_Fim, date_Fim, tm_inicio, tm_fim);
+            mesesAux.setQuantidade(tickets.size());
+            for (int i = 0; i < tickets.size(); i++) {
+                if (tickets.get(i).getCategory() == null) {
+                    category.setSemCategoria(category.getSemCategoria() + 1);
+                } else if (tickets.get(i).getCategory().equals("CustomizaÃ§Ã£o")) {
+                    category.setCustomizacao(category.getCustomizacao() + 1);
+                } else if (tickets.get(i).getCategory().equals("DÃºvida")) {
+                    category.setDuvida(category.getDuvida() + 1);
+                } else if (tickets.get(i).getCategory().equals("Falha")) {
+                    category.setFalha(category.getFalha() + 1);
+                } else if (tickets.get(i).getCategory().equals("HomologaÃ§Ã£o")) {
+                    category.setHomologacao(category.getHomologacao() + 1);
+                } else if (tickets.get(i).getCategory().equals("SolicitaÃ§Ã£o de ImplantaÃ§Ã£o")) {
+                    category.setImplantacao(category.getImplantacao() + 1);
+                } else if (tickets.get(i).getCategory().equals("LicitaÃ§Ã£o")) {
+                    category.setLicitacao(category.getLicitacao() + 1);
+                } else
+
+                if (tickets.get(i).getCategory().equals("SolicitaÃ§Ã£o de ServiÃ§o")) {
+                    category.setSolicitacaoServico(category.getSolicitacaoServico() + 1);
+                } else if (tickets.get(i).getCategory().equals("SugestÃ£o")) {
+                    category.setSugestao(category.getSugestao() + 1);
+                } else if (tickets.get(i).getCategory().equals("SolicitaÃ§Ã£o de Treinamento")) {
+                    category.setSolicitacaoTreinamento(category.getSolicitacaoTreinamento() + 1);
+                } else if (tickets.get(i).getCategory().equals("SolicitaÃ§Ã£o de Treinamento Online (Remoto)")) {
+                    category.setTreinamentoOnline(category.getTreinamentoOnline() + 1);
+                }
+            }
+            if ((category.getCustomizacao() > 0) || (category.getDuvida() > 0) || (category.getFalha() > 0) ||
+                    (category.getHomologacao() > 0) || (category.getImplantacao() > 0) || (category.getLicitacao() > 0)
+                    ||
+                    (category.getSemCategoria() > 0) || (category.getSolicitacaoServico() > 0)
+                    || (category.getSolicitacaoTreinamento() > 0) ||
+                    (category.getSugestao() > 0) || (category.getTreinamentoOnline() > 0)) {
+
+                mesesAux.setCategory(category);
+                meses.add(quant, mesesAux);
+                quant++;
+            }
+        }
+        return meses;
     }
 }
