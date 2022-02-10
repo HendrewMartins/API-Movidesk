@@ -45,6 +45,14 @@ public class Tickets {
     @JoinColumn(name = "owner", nullable = true)
     private Owner owner;
 
+    @ManyToOne
+    @JoinColumn(name = "clients", nullable = true)
+    private Clients clients;
+
+    @ManyToOne
+    @JoinColumn(name = "customClients", nullable = true)
+    private CustomClients customClients;
+
     @Column(name = "slaResponseTime", nullable = true, columnDefinition = "int default 0")
     private long slaResponseTime;
 
@@ -360,20 +368,38 @@ public class Tickets {
         this.horaTicket = horaTicket;
     }
 
+    
+
+    public Clients getClients() {
+        return clients;
+    }
+
+    public void setClients(Clients clients) {
+        this.clients = clients;
+    }
+
+    public CustomClients getCustomClients() {
+        return customClients;
+    }
+
+    public void setCustomClients(CustomClients customClients) {
+        this.customClients = customClients;
+    }
+
     @Override
     public String toString() {
         return "Tickets [actionCount=" + actionCount + ", baseStatus=" + baseStatus + ", category=" + category
-                + ", chatTalkTime=" + chatTalkTime + ", chatWaitingTime=" + chatWaitingTime + ", closedIn=" + closedIn
-                + ", createdDate=" + createdDate + ", dataTicket=" + dataTicket + ", horaTicket=" + horaTicket + ", id="
-                + id + ", justification=" + justification + ", lastActionDate=" + lastActionDate + ", lastUpdate="
-                + lastUpdate + ", lifeTimeWorkingTime=" + lifeTimeWorkingTime + ", origin=" + origin
-                + ", originEmailAccount=" + originEmailAccount + ", owner=" + owner + ", ownerTeam=" + ownerTeam
-                + ", protocol=" + protocol + ", reopenedIn=" + reopenedIn + ", resolvedIn=" + resolvedIn
-                + ", resolvedInFirstCall=" + resolvedInFirstCall + ", slaAgreement=" + slaAgreement
-                + ", slaAgreementRule=" + slaAgreementRule + ", slaResponseTime=" + slaResponseTime
-                + ", slaSolutionTime=" + slaSolutionTime + ", status=" + status + ", stoppedTime=" + stoppedTime
-                + ", stoppedTimeWorkingTime=" + stoppedTimeWorkingTime + ", subject=" + subject + ", type=" + type
-                + ", urgency=" + urgency + "]";
+                + ", chatTalkTime=" + chatTalkTime + ", chatWaitingTime=" + chatWaitingTime + ", clients=" + clients
+                + ", closedIn=" + closedIn + ", createdDate=" + createdDate + ", customClients=" + customClients
+                + ", dataTicket=" + dataTicket + ", horaTicket=" + horaTicket + ", id=" + id + ", justification="
+                + justification + ", lastActionDate=" + lastActionDate + ", lastUpdate=" + lastUpdate
+                + ", lifeTimeWorkingTime=" + lifeTimeWorkingTime + ", origin=" + origin + ", originEmailAccount="
+                + originEmailAccount + ", owner=" + owner + ", ownerTeam=" + ownerTeam + ", protocol=" + protocol
+                + ", reopenedIn=" + reopenedIn + ", resolvedIn=" + resolvedIn + ", resolvedInFirstCall="
+                + resolvedInFirstCall + ", slaAgreement=" + slaAgreement + ", slaAgreementRule=" + slaAgreementRule
+                + ", slaResponseTime=" + slaResponseTime + ", slaSolutionTime=" + slaSolutionTime + ", status=" + status
+                + ", stoppedTime=" + stoppedTime + ", stoppedTimeWorkingTime=" + stoppedTimeWorkingTime + ", subject="
+                + subject + ", type=" + type + ", urgency=" + urgency + "]";
     }  
 
     

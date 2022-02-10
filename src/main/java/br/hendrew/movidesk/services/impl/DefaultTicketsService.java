@@ -17,7 +17,10 @@ import br.hendrew.movidesk.entity.AgenteCategory;
 import br.hendrew.movidesk.entity.AgenteJustification;
 import br.hendrew.movidesk.entity.AgenteTickets;
 import br.hendrew.movidesk.entity.Category;
+import br.hendrew.movidesk.entity.CategoryOwner;
+import br.hendrew.movidesk.entity.Clients;
 import br.hendrew.movidesk.entity.Justification;
+import br.hendrew.movidesk.entity.Organization;
 import br.hendrew.movidesk.entity.Owner;
 import br.hendrew.movidesk.entity.Tickets;
 import br.hendrew.movidesk.entity.TicketsAnos;
@@ -27,6 +30,8 @@ import br.hendrew.movidesk.entity.TicketsSituacao;
 import br.hendrew.movidesk.entity.TicketsType;
 import br.hendrew.movidesk.entity.TicketsUrgency;
 import br.hendrew.movidesk.exception.MenssageNotFoundException;
+import br.hendrew.movidesk.repository.ClientsRepository;
+import br.hendrew.movidesk.repository.OrganizationRepository;
 import br.hendrew.movidesk.repository.OwnerRepository;
 import br.hendrew.movidesk.repository.TicketsRepository;
 import br.hendrew.movidesk.services.TicketsService;
@@ -38,13 +43,18 @@ public class DefaultTicketsService implements TicketsService {
 
     private final TicketsRepository ticketsRepository;
     private final OwnerRepository ownerRepository;
+    private final OrganizationRepository organizationRepository;
+    private final ClientsRepository clientsRepository;
 
     @Inject
     public DefaultTicketsService(TicketsRepository ticketsRepository,
-            OwnerRepository ownerRepository) {
+            OwnerRepository ownerRepository, OrganizationRepository organizationRepository,
+            ClientsRepository clientsRepository) {
 
         this.ticketsRepository = ticketsRepository;
         this.ownerRepository = ownerRepository;
+        this.organizationRepository = organizationRepository;
+        this.clientsRepository = clientsRepository;
 
     }
 
@@ -81,6 +91,25 @@ public class DefaultTicketsService implements TicketsService {
         java.util.Date util_Date = new java.util.Date();
         java.util.Date util_time = new java.util.Date();
 
+        // valida se existe agente
+        Owner owner = ownerRepository.findByStringId(tickets.getOwner().getId());
+        if (owner == null) {
+            ownerRepository.persistAndFlush(tickets.getOwner());
+        }
+
+        // valida se existe organization
+        Organization organization = organizationRepository.findByStringId(tickets.getClients().getOrganization().getId());
+        if (organization == null) {
+            organizationRepository.persistAndFlush(tickets.getClients().getOrganization());
+        }
+
+
+        // valida se existe clients
+        Clients clients = clientsRepository.findByStringId(tickets.getClients().getId());
+        if (clients == null) {
+            clientsRepository.persistAndFlush(tickets.getClients());
+        }
+        
         String dataStr;
         String timeStr;
 
@@ -114,7 +143,9 @@ public class DefaultTicketsService implements TicketsService {
         existing.setSlaSolutionTime(tickets.getSlaSolutionTime());
         existing.setStoppedTime(tickets.getStoppedTime());
         existing.setStoppedTimeWorkingTime(tickets.getStoppedTimeWorkingTime());
-
+        existing.setClients(tickets.getClients());
+        existing.setCustomClients(tickets.getCustomClients());
+        
         // obtem data e hora em string
         dataStr = tickets.getCreatedDate().substring(0, 10);
         timeStr = tickets.getCreatedDate().substring(11, 19);
@@ -205,6 +236,18 @@ public class DefaultTicketsService implements TicketsService {
             ownerRepository.persistAndFlush(tickets.getOwner());
         }
 
+        // valida se existe organization
+        Organization organization = organizationRepository.findByStringId(tickets.getClients().getOrganization().getId());
+        if (organization == null) {
+            organizationRepository.persistAndFlush(tickets.getClients().getOrganization());
+        }
+
+        // valida se existe clients
+        Clients clients = clientsRepository.findByStringId(tickets.getClients().getId());
+        if (clients == null) {
+            clientsRepository.persistAndFlush(tickets.getClients());
+        }
+
         // obtem data e hora em string
         dataStr = tickets.getCreatedDate().substring(0, 10);
         timeStr = tickets.getCreatedDate().substring(11, 19);
@@ -291,6 +334,11 @@ public class DefaultTicketsService implements TicketsService {
     @Override
     public long countTickets() {
         return ticketsRepository.count();
+    }
+
+    @Override
+    public long countTicketsSemClientCustom() {
+        return ticketsRepository.countByCustomClientsNull();
     }
 
     @Override
@@ -1022,7 +1070,7 @@ public class DefaultTicketsService implements TicketsService {
     }
 
     @Override
-    public List<TicketsAnosCategory> ticketsAnosCategory() throws MenssageNotFoundException {
+    public List<TicketsAnosCategory> ticketsAnosCategory(List<CategoryOwner> categoryowner) throws MenssageNotFoundException {
         SimpleDateFormat formatadorDia = new SimpleDateFormat("yyyy-MM-dd");
         List<TicketsAnosCategory> anos = new ArrayList<TicketsAnosCategory>();
         LocalDate current_date = LocalDate.now();
@@ -1055,7 +1103,7 @@ public class DefaultTicketsService implements TicketsService {
             category.setSugestao(0);
             category.setTreinamentoOnline(0);
 
-            List<Tickets> tickets = ticketsRepository.findByTicketsDate(date_Inicio, date_Fim);
+            List<Tickets> tickets = ticketsRepository.findByTicketsDate(date_Inicio, date_Fim,categoryowner);
 
             for (int i = 0; i < tickets.size(); i++) {
                 if (tickets.get(i).getCategory() == null) {
@@ -1093,7 +1141,7 @@ public class DefaultTicketsService implements TicketsService {
     }
 
     @Override
-    public List<TicketsMesesDias> ticketsMesesCategory() throws MenssageNotFoundException {
+    public List<TicketsMesesDias> ticketsMesesCategory(List<CategoryOwner> categoryowner) throws MenssageNotFoundException {
         List<TicketsMesesDias> meses = new ArrayList<TicketsMesesDias>();
         SimpleDateFormat formatadorDia = new SimpleDateFormat("yyyy-MM-dd");
         boolean end = true;
@@ -1133,7 +1181,7 @@ public class DefaultTicketsService implements TicketsService {
             category.setSugestao(0);
             category.setTreinamentoOnline(0);
 
-            List<Tickets> tickets = ticketsRepository.findByTicketsDate(date_Inicio, date_Fim);
+            List<Tickets> tickets = ticketsRepository.findByTicketsDate(date_Inicio, date_Fim,categoryowner);
             mesesAux.setQuantidade(tickets.size());
             for (int i = 0; i < tickets.size(); i++) {
                 if (tickets.get(i).getCategory() == null) {
@@ -1254,7 +1302,7 @@ public class DefaultTicketsService implements TicketsService {
     }
 
     @Override
-    public TicketsSituacao getTicketsbaseStatusSUMDate() throws MenssageNotFoundException {
+    public TicketsSituacao getTicketsbaseStatusSUMDate(List<CategoryOwner> categoryOwner) throws MenssageNotFoundException {
         SimpleDateFormat formatadorDia = new SimpleDateFormat("yyyy-MM-dd");
         TicketsSituacao sum = new TicketsSituacao();
 
@@ -1279,28 +1327,28 @@ public class DefaultTicketsService implements TicketsService {
 
         List<Tickets> listTickets = new ArrayList<Tickets>();
 
-        listTickets = ticketsRepository.findBybaseStatusDate("Canceled", date_Inicio, date_Fim);
+        listTickets = ticketsRepository.findBybaseStatusDate("Canceled", date_Inicio, date_Fim,categoryOwner);
         sum.setCanceled(listTickets.size());
 
-        listTickets = ticketsRepository.findBybaseStatusDate("Closed", date_Inicio, date_Fim);
+        listTickets = ticketsRepository.findBybaseStatusDate("Closed", date_Inicio, date_Fim, categoryOwner);
         sum.setClosed(listTickets.size());
 
-        listTickets = ticketsRepository.findBybaseStatusDate("InAttendance", date_Inicio, date_Fim);
+        listTickets = ticketsRepository.findBybaseStatusDate("InAttendance", date_Inicio, date_Fim,categoryOwner);
         sum.setInAttendance(listTickets.size());
 
-        listTickets = ticketsRepository.findBybaseStatusDate("New", date_Inicio, date_Fim);
+        listTickets = ticketsRepository.findBybaseStatusDate("New", date_Inicio, date_Fim,categoryOwner);
         sum.setNewReg(listTickets.size());
 
-        listTickets = ticketsRepository.findBybaseStatusDate("Resolved", date_Inicio, date_Fim);
+        listTickets = ticketsRepository.findBybaseStatusDate("Resolved", date_Inicio, date_Fim,categoryOwner);
         sum.setResolved(listTickets.size());
 
-        listTickets = ticketsRepository.findBybaseStatusDate("Stopped", date_Inicio, date_Fim);
+        listTickets = ticketsRepository.findBybaseStatusDate("Stopped", date_Inicio, date_Fim,categoryOwner);
         sum.setStopped(listTickets.size());
         return sum;
     }
 
     @Override
-    public TicketsUrgency getTicketsUrgencySUMDate() throws MenssageNotFoundException {
+    public TicketsUrgency getTicketsUrgencySUMDate(List<CategoryOwner> categoryOwner) throws MenssageNotFoundException {
         SimpleDateFormat formatadorDia = new SimpleDateFormat("yyyy-MM-dd");
         TicketsUrgency sum = new TicketsUrgency();
         List<Tickets> listTickets = new ArrayList<Tickets>();
@@ -1324,26 +1372,26 @@ public class DefaultTicketsService implements TicketsService {
             e.printStackTrace();
         }
 
-        listTickets = ticketsRepository.findByUrgencyDate("2 - Alta", date_Inicio, date_Fim);
+        listTickets = ticketsRepository.findByUrgencyDate("2 - Alta", date_Inicio, date_Fim,categoryOwner);
         sum.setAlta(listTickets.size());
 
-        listTickets = ticketsRepository.findByUrgencyDate("4 - Baixa", date_Inicio, date_Fim);
+        listTickets = ticketsRepository.findByUrgencyDate("4 - Baixa", date_Inicio, date_Fim,categoryOwner);
         sum.setBaixa(listTickets.size());
 
-        listTickets = ticketsRepository.findByUrgencyDate("3 - MÃ©dia", date_Inicio, date_Fim);
+        listTickets = ticketsRepository.findByUrgencyDate("3 - MÃ©dia", date_Inicio, date_Fim,categoryOwner);
         sum.setMedia(listTickets.size());
 
-        listTickets = ticketsRepository.findByUrgencyIsNullDate(date_Inicio, date_Fim);
+        listTickets = ticketsRepository.findByUrgencyIsNullDate(date_Inicio, date_Fim,categoryOwner);
         sum.setNulo(listTickets.size());
 
-        listTickets = ticketsRepository.findByUrgencyDate("1 - Urgente", date_Inicio, date_Fim);
+        listTickets = ticketsRepository.findByUrgencyDate("1 - Urgente", date_Inicio, date_Fim,categoryOwner);
         sum.setUrgente(listTickets.size());
 
         return sum;
     }
 
     @Override
-    public Category CategorySeven() throws MenssageNotFoundException {
+    public Category CategorySeven(List<CategoryOwner> categoryOwner) throws MenssageNotFoundException {
         SimpleDateFormat formatadorDia = new SimpleDateFormat("yyyy-MM-dd");
         Category cat = new Category();
 
@@ -1367,21 +1415,21 @@ public class DefaultTicketsService implements TicketsService {
         }
 
         List<Tickets> ticketsCustomizacao = ticketsRepository.findByCategoryDate("CustomizaÃ§Ã£o", date_Inicio,
-                date_Fim);
-        List<Tickets> ticketsDuvida = ticketsRepository.findByCategoryDate("DÃºvida", date_Inicio, date_Fim);
-        List<Tickets> ticketsFalha = ticketsRepository.findByCategoryDate("Falha", date_Inicio, date_Fim);
-        List<Tickets> ticketsHomologacao = ticketsRepository.findByCategoryDate("HomologaÃ§Ã£o", date_Inicio, date_Fim);
+                date_Fim,categoryOwner);
+        List<Tickets> ticketsDuvida = ticketsRepository.findByCategoryDate("DÃºvida", date_Inicio, date_Fim,categoryOwner);
+        List<Tickets> ticketsFalha = ticketsRepository.findByCategoryDate("Falha", date_Inicio, date_Fim,categoryOwner);
+        List<Tickets> ticketsHomologacao = ticketsRepository.findByCategoryDate("HomologaÃ§Ã£o", date_Inicio, date_Fim,categoryOwner);
         List<Tickets> ticketsImplantacao = ticketsRepository.findByCategoryDate("SolicitaÃ§Ã£o de ImplantaÃ§Ã£o",
-                date_Inicio, date_Fim);
-        List<Tickets> ticketsLicitacao = ticketsRepository.findByCategoryDate("LicitaÃ§Ã£o", date_Inicio, date_Fim);
-        List<Tickets> ticketsSemCategoria = ticketsRepository.findBySemCategoryDate(date_Inicio, date_Fim);
+                date_Inicio, date_Fim,categoryOwner);
+        List<Tickets> ticketsLicitacao = ticketsRepository.findByCategoryDate("LicitaÃ§Ã£o", date_Inicio, date_Fim,categoryOwner);
+        List<Tickets> ticketsSemCategoria = ticketsRepository.findBySemCategoryDate(date_Inicio, date_Fim,categoryOwner);
         List<Tickets> ticketsServico = ticketsRepository.findByCategoryDate("SolicitaÃ§Ã£o de ServiÃ§o", date_Inicio,
-                date_Fim);
-        List<Tickets> ticketsSugestao = ticketsRepository.findByCategoryDate("SugestÃ£o", date_Inicio, date_Fim);
+                date_Fim,categoryOwner);
+        List<Tickets> ticketsSugestao = ticketsRepository.findByCategoryDate("SugestÃ£o", date_Inicio, date_Fim,categoryOwner);
         List<Tickets> ticketsTreinamento = ticketsRepository.findByCategoryDate("SolicitaÃ§Ã£o de Treinamento",
-                date_Inicio, date_Fim);
+                date_Inicio, date_Fim,categoryOwner);
         List<Tickets> ticketsTreinamentoRemoto = ticketsRepository
-                .findByCategoryDate("SolicitaÃ§Ã£o de Treinamento Online (Remoto)", date_Inicio, date_Fim);
+                .findByCategoryDate("SolicitaÃ§Ã£o de Treinamento Online (Remoto)", date_Inicio, date_Fim,categoryOwner);
 
         cat.setCustomizacao(ticketsCustomizacao.size());
         cat.setDuvida(ticketsDuvida.size());
@@ -1399,7 +1447,7 @@ public class DefaultTicketsService implements TicketsService {
     }
 
     @Override
-    public List<AgenteTickets> OwnerTicketsSeven() throws MenssageNotFoundException {
+    public List<AgenteTickets> OwnerTicketsSeven(List<CategoryOwner> categoryOwner) throws MenssageNotFoundException {
         SimpleDateFormat formatadorDia = new SimpleDateFormat("yyyy-MM-dd");
         List<AgenteTickets> agente = new ArrayList<AgenteTickets>();
 
@@ -1425,12 +1473,12 @@ public class DefaultTicketsService implements TicketsService {
         }
 
         List<Tickets> ticketsInAttendance = ticketsRepository.findBybaseStatusDate("InAttendance", date_Inicio,
-                date_Fim);
-        List<Tickets> ticketsNew = ticketsRepository.findBybaseStatusDate("New", date_Inicio, date_Fim);
-        List<Tickets> ticketsStopped = ticketsRepository.findBybaseStatusDate("Stopped", date_Inicio, date_Fim);
-        List<Tickets> ticketsCanceled = ticketsRepository.findBybaseStatusDate("Canceled", date_Inicio, date_Fim);
-        List<Tickets> ticketsResolved = ticketsRepository.findBybaseStatusDate("Resolved", date_Inicio, date_Fim);
-        List<Tickets> ticketsClosed = ticketsRepository.findBybaseStatusDate("Closed", date_Inicio, date_Fim);
+                date_Fim,categoryOwner);
+        List<Tickets> ticketsNew = ticketsRepository.findBybaseStatusDate("New", date_Inicio, date_Fim,categoryOwner);
+        List<Tickets> ticketsStopped = ticketsRepository.findBybaseStatusDate("Stopped", date_Inicio, date_Fim,categoryOwner);
+        List<Tickets> ticketsCanceled = ticketsRepository.findBybaseStatusDate("Canceled", date_Inicio, date_Fim,categoryOwner);
+        List<Tickets> ticketsResolved = ticketsRepository.findBybaseStatusDate("Resolved", date_Inicio, date_Fim,categoryOwner);
+        List<Tickets> ticketsClosed = ticketsRepository.findBybaseStatusDate("Closed", date_Inicio, date_Fim,categoryOwner);
 
         int quantOwner = 0;
 
@@ -1479,7 +1527,8 @@ public class DefaultTicketsService implements TicketsService {
                 }
             }
 
-            if ((quantInAttendance > 0) || (quantNew > 0) || (quantStopped > 0)) {
+            if ((quantInAttendance > 0) || (quantNew > 0) || (quantStopped > 0) ||
+            (quantResolved > 0) || (quantCanceled > 0 ) || (quantClosed > 0)) {
 
                 AgenteTickets agenteTemp = new AgenteTickets();
                 agenteTemp.setIdAgente(owner.get(i).getId());
@@ -1501,7 +1550,7 @@ public class DefaultTicketsService implements TicketsService {
     }
 
     @Override
-    public List<TicketsMesesDias> ticketsSevenCategory() throws MenssageNotFoundException {
+    public List<TicketsMesesDias> ticketsSevenCategory(List<CategoryOwner> categoryowner) throws MenssageNotFoundException {
         List<TicketsMesesDias> meses = new ArrayList<TicketsMesesDias>();
         SimpleDateFormat formatadorDia = new SimpleDateFormat("yyyy-MM-dd");
 
@@ -1539,7 +1588,7 @@ public class DefaultTicketsService implements TicketsService {
             category.setSugestao(0);
             category.setTreinamentoOnline(0);
 
-            List<Tickets> tickets = ticketsRepository.findByTicketsDate(date_Inicio, date_Fim);
+            List<Tickets> tickets = ticketsRepository.findByTicketsDate(date_Inicio, date_Fim,categoryowner);
             mesesAux.setQuantidade(tickets.size());
             for (int i = 0; i < tickets.size(); i++) {
                 if (tickets.get(i).getCategory() == null) {
@@ -1575,7 +1624,7 @@ public class DefaultTicketsService implements TicketsService {
     }
 
     @Override
-    public Category CategoryDay() throws MenssageNotFoundException {
+    public Category CategoryDay(List<CategoryOwner> categoryowner) throws MenssageNotFoundException {
         SimpleDateFormat formatadorDia = new SimpleDateFormat("yyyy-MM-dd");
         Category cat = new Category();
 
@@ -1592,21 +1641,21 @@ public class DefaultTicketsService implements TicketsService {
             e.printStackTrace();
         }
 
-        List<Tickets> ticketsCustomizacao = ticketsRepository.findByCategoryDate("CustomizaÃ§Ã£o", date_Fim, date_Fim);
-        List<Tickets> ticketsDuvida = ticketsRepository.findByCategoryDate("DÃºvida", date_Fim, date_Fim);
-        List<Tickets> ticketsFalha = ticketsRepository.findByCategoryDate("Falha", date_Fim, date_Fim);
-        List<Tickets> ticketsHomologacao = ticketsRepository.findByCategoryDate("HomologaÃ§Ã£o", date_Fim, date_Fim);
+        List<Tickets> ticketsCustomizacao = ticketsRepository.findByCategoryDate("CustomizaÃ§Ã£o", date_Fim, date_Fim,categoryowner);
+        List<Tickets> ticketsDuvida = ticketsRepository.findByCategoryDate("DÃºvida", date_Fim, date_Fim,categoryowner);
+        List<Tickets> ticketsFalha = ticketsRepository.findByCategoryDate("Falha", date_Fim, date_Fim,categoryowner);
+        List<Tickets> ticketsHomologacao = ticketsRepository.findByCategoryDate("HomologaÃ§Ã£o", date_Fim, date_Fim,categoryowner);
         List<Tickets> ticketsImplantacao = ticketsRepository.findByCategoryDate("SolicitaÃ§Ã£o de ImplantaÃ§Ã£o",
-                date_Fim, date_Fim);
-        List<Tickets> ticketsLicitacao = ticketsRepository.findByCategoryDate("LicitaÃ§Ã£o", date_Fim, date_Fim);
-        List<Tickets> ticketsSemCategoria = ticketsRepository.findBySemCategoryDate(date_Fim, date_Fim);
+                date_Fim, date_Fim,categoryowner);
+        List<Tickets> ticketsLicitacao = ticketsRepository.findByCategoryDate("LicitaÃ§Ã£o", date_Fim, date_Fim,categoryowner);
+        List<Tickets> ticketsSemCategoria = ticketsRepository.findBySemCategoryDate(date_Fim, date_Fim,categoryowner);
         List<Tickets> ticketsServico = ticketsRepository.findByCategoryDate("SolicitaÃ§Ã£o de ServiÃ§o", date_Fim,
-                date_Fim);
-        List<Tickets> ticketsSugestao = ticketsRepository.findByCategoryDate("SugestÃ£o", date_Fim, date_Fim);
+                date_Fim,categoryowner);
+        List<Tickets> ticketsSugestao = ticketsRepository.findByCategoryDate("SugestÃ£o", date_Fim, date_Fim,categoryowner);
         List<Tickets> ticketsTreinamento = ticketsRepository.findByCategoryDate("SolicitaÃ§Ã£o de Treinamento",
-                date_Fim, date_Fim);
+                date_Fim, date_Fim,categoryowner);
         List<Tickets> ticketsTreinamentoRemoto = ticketsRepository
-                .findByCategoryDate("SolicitaÃ§Ã£o de Treinamento Online (Remoto)", date_Fim, date_Fim);
+                .findByCategoryDate("SolicitaÃ§Ã£o de Treinamento Online (Remoto)", date_Fim, date_Fim,categoryowner);
 
         cat.setCustomizacao(ticketsCustomizacao.size());
         cat.setDuvida(ticketsDuvida.size());
@@ -1624,7 +1673,7 @@ public class DefaultTicketsService implements TicketsService {
     }
 
     @Override
-    public TicketsSituacao getTicketsbaseStatusSUMDay() throws MenssageNotFoundException {
+    public TicketsSituacao getTicketsbaseStatusSUMDay(List<CategoryOwner> categoryOwner) throws MenssageNotFoundException {
         SimpleDateFormat formatadorDia = new SimpleDateFormat("yyyy-MM-dd");
         TicketsSituacao sum = new TicketsSituacao();
 
@@ -1643,28 +1692,28 @@ public class DefaultTicketsService implements TicketsService {
 
         List<Tickets> listTickets = new ArrayList<Tickets>();
 
-        listTickets = ticketsRepository.findBybaseStatusDate("Canceled", date_Fim, date_Fim);
+        listTickets = ticketsRepository.findBybaseStatusDate("Canceled", date_Fim, date_Fim,categoryOwner);
         sum.setCanceled(listTickets.size());
 
-        listTickets = ticketsRepository.findBybaseStatusDate("Closed", date_Fim, date_Fim);
+        listTickets = ticketsRepository.findBybaseStatusDate("Closed", date_Fim, date_Fim,categoryOwner);
         sum.setClosed(listTickets.size());
 
-        listTickets = ticketsRepository.findBybaseStatusDate("InAttendance", date_Fim, date_Fim);
+        listTickets = ticketsRepository.findBybaseStatusDate("InAttendance", date_Fim, date_Fim,categoryOwner);
         sum.setInAttendance(listTickets.size());
 
-        listTickets = ticketsRepository.findBybaseStatusDate("New", date_Fim, date_Fim);
+        listTickets = ticketsRepository.findBybaseStatusDate("New", date_Fim, date_Fim,categoryOwner);
         sum.setNewReg(listTickets.size());
 
-        listTickets = ticketsRepository.findBybaseStatusDate("Resolved", date_Fim, date_Fim);
+        listTickets = ticketsRepository.findBybaseStatusDate("Resolved", date_Fim, date_Fim,categoryOwner);
         sum.setResolved(listTickets.size());
 
-        listTickets = ticketsRepository.findBybaseStatusDate("Stopped", date_Fim, date_Fim);
+        listTickets = ticketsRepository.findBybaseStatusDate("Stopped", date_Fim, date_Fim,categoryOwner);
         sum.setStopped(listTickets.size());
         return sum;
     }
 
     @Override
-    public TicketsUrgency getTicketsUrgencySUMDay() throws MenssageNotFoundException {
+    public TicketsUrgency getTicketsUrgencySUMDay(List<CategoryOwner> categoryOwner) throws MenssageNotFoundException {
         SimpleDateFormat formatadorDia = new SimpleDateFormat("yyyy-MM-dd");
         TicketsUrgency sum = new TicketsUrgency();
         List<Tickets> listTickets = new ArrayList<Tickets>();
@@ -1682,26 +1731,26 @@ public class DefaultTicketsService implements TicketsService {
             e.printStackTrace();
         }
 
-        listTickets = ticketsRepository.findByUrgencyDate("2 - Alta", date_Fim, date_Fim);
+        listTickets = ticketsRepository.findByUrgencyDate("2 - Alta", date_Fim, date_Fim,categoryOwner);
         sum.setAlta(listTickets.size());
 
-        listTickets = ticketsRepository.findByUrgencyDate("4 - Baixa", date_Fim, date_Fim);
+        listTickets = ticketsRepository.findByUrgencyDate("4 - Baixa", date_Fim, date_Fim,categoryOwner);
         sum.setBaixa(listTickets.size());
 
-        listTickets = ticketsRepository.findByUrgencyDate("3 - MÃ©dia", date_Fim, date_Fim);
+        listTickets = ticketsRepository.findByUrgencyDate("3 - MÃ©dia", date_Fim, date_Fim,categoryOwner);
         sum.setMedia(listTickets.size());
 
-        listTickets = ticketsRepository.findByUrgencyIsNullDate(date_Fim, date_Fim);
+        listTickets = ticketsRepository.findByUrgencyIsNullDate(date_Fim, date_Fim,categoryOwner);
         sum.setNulo(listTickets.size());
 
-        listTickets = ticketsRepository.findByUrgencyDate("1 - Urgente", date_Fim, date_Fim);
+        listTickets = ticketsRepository.findByUrgencyDate("1 - Urgente", date_Fim, date_Fim,categoryOwner);
         sum.setUrgente(listTickets.size());
 
         return sum;
     }
 
     @Override
-    public List<AgenteTickets> OwnerTicketsDay() throws MenssageNotFoundException {
+    public List<AgenteTickets> OwnerTicketsDay(List<CategoryOwner> categoryOwner) throws MenssageNotFoundException {
         SimpleDateFormat formatadorDia = new SimpleDateFormat("yyyy-MM-dd");
         List<AgenteTickets> agente = new ArrayList<AgenteTickets>();
 
@@ -1720,12 +1769,12 @@ public class DefaultTicketsService implements TicketsService {
             e.printStackTrace();
         }
 
-        List<Tickets> ticketsInAttendance = ticketsRepository.findBybaseStatusDate("InAttendance", date_Fim, date_Fim);
-        List<Tickets> ticketsNew = ticketsRepository.findBybaseStatusDate("New", date_Fim, date_Fim);
-        List<Tickets> ticketsStopped = ticketsRepository.findBybaseStatusDate("Stopped", date_Fim, date_Fim);
-        List<Tickets> ticketsCanceled = ticketsRepository.findBybaseStatusDate("Canceled", date_Fim, date_Fim);
-        List<Tickets> ticketsResolved = ticketsRepository.findBybaseStatusDate("Resolved", date_Fim, date_Fim);
-        List<Tickets> ticketsClosed = ticketsRepository.findBybaseStatusDate("Closed", date_Fim, date_Fim);
+        List<Tickets> ticketsInAttendance = ticketsRepository.findBybaseStatusDate("InAttendance", date_Fim, date_Fim,categoryOwner);
+        List<Tickets> ticketsNew = ticketsRepository.findBybaseStatusDate("New", date_Fim, date_Fim,categoryOwner);
+        List<Tickets> ticketsStopped = ticketsRepository.findBybaseStatusDate("Stopped", date_Fim, date_Fim,categoryOwner);
+        List<Tickets> ticketsCanceled = ticketsRepository.findBybaseStatusDate("Canceled", date_Fim, date_Fim,categoryOwner);
+        List<Tickets> ticketsResolved = ticketsRepository.findBybaseStatusDate("Resolved", date_Fim, date_Fim,categoryOwner);
+        List<Tickets> ticketsClosed = ticketsRepository.findBybaseStatusDate("Closed", date_Fim, date_Fim,categoryOwner);
 
         int quantOwner = 0;
 
@@ -1774,7 +1823,8 @@ public class DefaultTicketsService implements TicketsService {
                 }
             }
 
-            if ((quantInAttendance > 0) || (quantNew > 0) || (quantStopped > 0)) {
+            if ((quantInAttendance > 0) || (quantNew > 0) || (quantStopped > 0) ||
+            (quantResolved > 0) || (quantCanceled > 0 ) || (quantClosed > 0)) {
 
                 AgenteTickets agenteTemp = new AgenteTickets();
                 agenteTemp.setIdAgente(owner.get(i).getId());
@@ -1796,7 +1846,7 @@ public class DefaultTicketsService implements TicketsService {
     }
 
     @Override
-    public List<TicketsMesesDias> ticketsDayCategory() throws MenssageNotFoundException {
+    public List<TicketsMesesDias> ticketsDayCategory(List<CategoryOwner> categoryowner) throws MenssageNotFoundException {
         List<TicketsMesesDias> meses = new ArrayList<TicketsMesesDias>();
         SimpleDateFormat formatadorDia = new SimpleDateFormat("yyyy-MM-dd");
         SimpleDateFormat formatadorTime = new SimpleDateFormat("HH:mm:ss");
@@ -1850,7 +1900,7 @@ public class DefaultTicketsService implements TicketsService {
             category.setSugestao(0);
             category.setTreinamentoOnline(0);
 
-            List<Tickets> tickets = ticketsRepository.findByTicketsDateTime(date_Fim, date_Fim, tm_inicio, tm_fim);
+            List<Tickets> tickets = ticketsRepository.findByTicketsDateTime(date_Fim, date_Fim, tm_inicio, tm_fim,categoryowner);
             mesesAux.setQuantidade(tickets.size());
             for (int i = 0; i < tickets.size(); i++) {
                 if (tickets.get(i).getCategory() == null) {

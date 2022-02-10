@@ -41,6 +41,10 @@ public class Converte {
         tickets.setSubject(ticketjson.getSubject());
         tickets.setType(ticketjson.getType());
         tickets.setUrgency(ticketjson.getUrgency());
+        if(ticketjson.getClients().size() > 0){
+            tickets.setClients(ticketjson.getClients().get(0));
+        }
+        
 
         return tickets;
     }
@@ -62,5 +66,10 @@ public class Converte {
 
         return actions;
     }
+
+    public Converte() {
+    }
+
+    
 
 }

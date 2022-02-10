@@ -6,6 +6,7 @@ import br.hendrew.movidesk.entity.AgenteCategory;
 import br.hendrew.movidesk.entity.AgenteJustification;
 import br.hendrew.movidesk.entity.AgenteTickets;
 import br.hendrew.movidesk.entity.Category;
+import br.hendrew.movidesk.entity.CategoryOwner;
 import br.hendrew.movidesk.entity.Justification;
 import br.hendrew.movidesk.entity.Tickets;
 import br.hendrew.movidesk.entity.TicketsAnos;
@@ -60,28 +61,30 @@ public interface TicketsService {
 
     List<TicketsAnos> ticketsAnos() throws MenssageNotFoundException;
 
-    List<TicketsAnosCategory> ticketsAnosCategory() throws MenssageNotFoundException;
+    List<TicketsAnosCategory> ticketsAnosCategory(List<CategoryOwner> categoryowner) throws MenssageNotFoundException;
 
-    List<TicketsMesesDias> ticketsMesesCategory() throws MenssageNotFoundException;
+    List<TicketsMesesDias> ticketsMesesCategory(List<CategoryOwner> categoryowner) throws MenssageNotFoundException;
 
-    TicketsSituacao getTicketsbaseStatusSUMDate() throws MenssageNotFoundException;
+    TicketsSituacao getTicketsbaseStatusSUMDate(List<CategoryOwner> categoryOwner) throws MenssageNotFoundException;
 
-    TicketsUrgency getTicketsUrgencySUMDate() throws MenssageNotFoundException;
+    TicketsUrgency getTicketsUrgencySUMDate(List<CategoryOwner> categoryOwner) throws MenssageNotFoundException;
 
-    Category CategorySeven() throws MenssageNotFoundException;
+    Category CategorySeven(List<CategoryOwner> categoryOwner) throws MenssageNotFoundException;
 
-    Category CategoryDay() throws MenssageNotFoundException;
+    Category CategoryDay(List<CategoryOwner> categoryowner) throws MenssageNotFoundException;
 
-    List<AgenteTickets> OwnerTicketsSeven() throws MenssageNotFoundException;
+    List<AgenteTickets> OwnerTicketsSeven(List<CategoryOwner> categoryOwner) throws MenssageNotFoundException;
 
-    List<TicketsMesesDias> ticketsSevenCategory() throws MenssageNotFoundException;
+    List<TicketsMesesDias> ticketsSevenCategory(List<CategoryOwner> categoryowner) throws MenssageNotFoundException;
 
-    TicketsSituacao getTicketsbaseStatusSUMDay() throws MenssageNotFoundException;
+    TicketsSituacao getTicketsbaseStatusSUMDay(List<CategoryOwner> categoryOwners) throws MenssageNotFoundException;
 
-    TicketsUrgency getTicketsUrgencySUMDay() throws MenssageNotFoundException;
+    TicketsUrgency getTicketsUrgencySUMDay(List<CategoryOwner> categoryowner) throws MenssageNotFoundException;
 
-    List<AgenteTickets> OwnerTicketsDay() throws MenssageNotFoundException;
+    List<AgenteTickets> OwnerTicketsDay(List<CategoryOwner> categoryOwner) throws MenssageNotFoundException;
 
-    List<TicketsMesesDias> ticketsDayCategory() throws MenssageNotFoundException;
+    List<TicketsMesesDias> ticketsDayCategory(List<CategoryOwner> categoryowner) throws MenssageNotFoundException;
+
+    long countTicketsSemClientCustom();
 
 }

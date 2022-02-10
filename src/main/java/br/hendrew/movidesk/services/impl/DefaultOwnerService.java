@@ -42,8 +42,8 @@ public class DefaultOwnerService implements OwnerService {
 
     @Transactional
     @Override
-    public Owner updateOwner(long id, Owner owner) throws MenssageNotFoundException {
-        Owner existing = getOwnerById(id);
+    public Owner updateOwner(String id, Owner owner) throws MenssageNotFoundException {
+        Owner existing = getOwnerByStringId(id);
 
         existing.setBusinessName(owner.getBusinessName());
         existing.setEmail(owner.getEmail());
@@ -51,6 +51,7 @@ public class DefaultOwnerService implements OwnerService {
         existing.setPersonType(owner.getPersonType());
         existing.setPhone(owner.getPhone());
         existing.setProfileType(owner.getProfileType());
+        existing.setCategoryOwner(owner.getCategoryOwner());
 
         return existing;
     }
@@ -64,8 +65,8 @@ public class DefaultOwnerService implements OwnerService {
 
     @Transactional
     @Override
-    public void deleteOwner(long id) throws MenssageNotFoundException {
-        ownerRepository.delete(getOwnerById(id));
+    public void deleteOwner(String id) throws MenssageNotFoundException {
+        ownerRepository.delete(getOwnerByStringId(id));
     }
 
     @Override
@@ -75,7 +76,7 @@ public class DefaultOwnerService implements OwnerService {
 
     @Override
     public List<Owner> getOwnerPage(int pag, int quant) throws MenssageNotFoundException {
-        List<Owner> owner = ownerRepository.findAll().page(Page.of(pag, quant)).list();
+        List<Owner> owner = ownerRepository.findAll(Sort.ascending("businessname")).page(Page.of(pag, quant)).list();
         return owner;
     }
 

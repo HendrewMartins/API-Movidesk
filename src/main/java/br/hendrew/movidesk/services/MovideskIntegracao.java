@@ -21,10 +21,16 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 
+import br.hendrew.movidesk.entity.Clients;
+import br.hendrew.movidesk.entity.CustomClients;
+import br.hendrew.movidesk.entity.CustomFieldValues;
+import br.hendrew.movidesk.entity.Organization;
 import br.hendrew.movidesk.entity.Owner;
 import br.hendrew.movidesk.entity.Tickets;
+import br.hendrew.movidesk.entity.TicketsJson;
 import br.hendrew.movidesk.entity.Update;
 import br.hendrew.movidesk.exception.MenssageNotFoundException;
+import br.hendrew.movidesk.validation.Converte;
 import br.hendrew.movidesk.validation.Util;
 
 import org.jboss.logging.Logger;
@@ -38,6 +44,7 @@ public class MovideskIntegracao {
     public boolean localizar = true;
     public long tentativaUpdate = 0;
     public long tentativaStatus = 0;
+    public long tentativaCustomClients = 0;
 
     static String webService = "https://api.movidesk.com/public/v1/tickets?" +
             "token=6fd0a503-b0d1-40fe-91f8-4cc4e3e027f7&$select=id,type,subject,createdDate,"
@@ -45,22 +52,30 @@ public class MovideskIntegracao {
             + "ownerTeam,resolvedIn,reopenedIn,closedIn,lastActionDate,actionCount,lastUpdate,"
             + "lifetimeWorkingTime,stoppedTime,stoppedTimeWorkingTime,resolvedInFirstCall,chatTalkTime,"
             + "chatWaitingTime,slaAgreement,slaAgreementRule,slaSolutionTime,slaResponseTime"
-            + "&$orderby=id&$expand=owner";
+            + "&$orderby=id&$expand=owner,clients($expand=organization)";
 
     static int codigoSucesso = 200;
     private final TicketsService ticketsService;
     private final OwnerService ownerService;
     private final AtualizacaoService atualizacaoService;
+    private final CustomClientsService customClientService;
+    private final ClientsService clientsService;
+    private final OrganizationService organizationService;
 
     @Inject
     public MovideskIntegracao(TicketsService ticketsService, OwnerService ownerService,
-            AtualizacaoService atualizacaoService) {
+            AtualizacaoService atualizacaoService, CustomClientsService customClientService,
+            ClientsService clientsService, OrganizationService organizationService) {
         this.ticketsService = ticketsService;
         this.ownerService = ownerService;
         this.atualizacaoService = atualizacaoService;
+        this.customClientService = customClientService;
+        this.clientsService = clientsService;
+        this.organizationService = organizationService;
     }
 
     public List<Tickets> buscarTodosTickets() throws Exception {
+        Converte convert = new Converte();
         String urlMontada = webService;
         List<Tickets> tickets = new ArrayList<Tickets>();
         Update up = new Update();
@@ -75,7 +90,7 @@ public class MovideskIntegracao {
                 up.setDataInicioAtualizacao(pegarData());
                 up = registroIncluirAtualizacao(up);
                 while (end) {
-                    List<Tickets> ticketsAux = new ArrayList<Tickets>();
+                    List<TicketsJson> ticketsjson = new ArrayList<TicketsJson>();
                     if (ownerService.countOwner() == 0) {
                         Owner owner = new Owner();
                         owner.setId("A0207");
@@ -87,6 +102,33 @@ public class MovideskIntegracao {
                         owner.setPhone("phone");
                         ownerService.saveOwner(owner);
                     }
+                    if (organizationService.countOrganization() == 0) {
+                        Organization organization = new Organization();
+                        organization.setId("A0207");
+                        organization.setBusinessName("Sem Organization");
+                        organization.setPersonType(1);
+                        organization.setProfileType(3);
+                        organization.setEmail("email");
+                        organization.setPathPicture("pathpicture");
+                        organization.setPhone("phone");
+                        organizationService.saveOrganization(organization);
+                    }
+
+                    if (clientsService.countClients() == 0) {
+                        Clients clients = new Clients();
+                        clients.setId("A0207");
+                        clients.setBusinessName("Sem Cliente");
+                        clients.setPersonType(1);
+                        clients.setProfileType(3);
+                        clients.setEmail("email");
+                        clients.setPathPicture("pathpicture");
+                        clients.setPhone("phone");
+                        clients.setOrganization(organizationService.getOrganizationByStringId("A0207"));
+                        clients.setIsDeleted("false");
+                        clientsService.saveClients(clients);
+                    }
+
+                    
 
                     URL url = new URL(urlMontada + "&$top=1000" + "&$skip=" + quant);
                     HttpURLConnection conexao = (HttpURLConnection) url.openConnection();
@@ -97,31 +139,44 @@ public class MovideskIntegracao {
                     BufferedReader resposta = new BufferedReader(new InputStreamReader((conexao.getInputStream())));
                     String jsonEmString = Util.converteJsonEmString(resposta);
 
-                    Type listType = new TypeToken<ArrayList<Tickets>>() {
+                    Type listType = new TypeToken<ArrayList<TicketsJson>>() {
                     }.getType();
                     GsonBuilder builder = new GsonBuilder();
                     builder.setPrettyPrinting();
                     Gson gson = builder.create();
-                    ticketsAux = gson.fromJson(jsonEmString, listType);
+                    ticketsjson = gson.fromJson(jsonEmString, listType);
                     LOG.info("Inicio Importação Total de Registro");
-                    for (int i = 0; i < ticketsAux.size(); i++) {
+                    for (int i = 0; i < ticketsjson.size(); i++) {
+                        Tickets ticketsAux = convert.converteTickets(ticketsjson.get(i));
                         if (tickets.size() == 0) {
-                            tickets.add(0, ticketsAux.get(i));
+                            tickets.add(0, ticketsAux);
                         } else {
                             Integer position = tickets.size();
-                            tickets.add(position, ticketsAux.get(i));
+                            tickets.add(position, ticketsAux);
 
                         }
-                        if (ticketsAux.get(i).getOwner() == null) {
+                        if (ticketsAux.getOwner() == null) {
                             Owner owner = ownerService.getOwnerByStringId("A0207");
-                            ticketsAux.get(i).setOwner(owner);
+                            ticketsAux.setOwner(owner);
                         }
-                        ticketsService.saveTickets(ticketsAux.get(i));
-                        LOG.info("Importado Registro = " + ticketsAux.get(i).getId());
+                        if (ticketsAux.getClients() == null) {
+                            Clients clients = clientsService.getClientsByStringId("A0207");
+                            ticketsAux.setClients(clients);
+                        }
+                        if (ticketsAux.getClients().getOrganization() == null) {
+                            Clients clients = new Clients();
+                            Organization organization = organizationService.getOrganizationByStringId("A0207");
+                            clients = ticketsAux.getClients();
+                            clients.setOrganization(organization);
+                            ticketsAux.setClients(clients);
+                        }
+
+                        ticketsService.saveTickets(ticketsAux);
+                        LOG.info("Importado Registro = " + ticketsAux.getId());
                         System.out.println();
                     }
 
-                    end = ticketsAux.size() >= 1000;
+                    end = ticketsjson.size() >= 1000;
                     quant = quant + 1000;
                 }
                 LOG.info("Terminou Importação de Registro Total");
@@ -144,6 +199,7 @@ public class MovideskIntegracao {
     }
 
     public List<Tickets> atualizarTickets() throws Exception {
+        Converte convert = new Converte();
         String urlMontada = webService;
         List<Tickets> tickets = new ArrayList<Tickets>();
         Boolean end = true;
@@ -161,7 +217,7 @@ public class MovideskIntegracao {
             up = registroIncluirAtualizacao(up);
 
             while (end) {
-                List<Tickets> ticketsAux = new ArrayList<Tickets>();
+                List<TicketsJson> ticketsjson = new ArrayList<TicketsJson>();
 
                 if (ownerService.countOwner() == 0) {
                     Owner owner = new Owner();
@@ -175,6 +231,33 @@ public class MovideskIntegracao {
                     ownerService.saveOwner(owner);
                 }
 
+                if (organizationService.countOrganization() == 0) {
+                    Organization organization = new Organization();
+                    organization.setId("A0207");
+                    organization.setBusinessName("Sem Organization");
+                    organization.setPersonType(1);
+                    organization.setProfileType(3);
+                    organization.setEmail("email");
+                    organization.setPathPicture("pathpicture");
+                    organization.setPhone("phone");
+                    organizationService.saveOrganization(organization);
+                }
+
+                if (clientsService.countClients() == 0) {
+                    Clients clients = new Clients();
+                    clients.setId("A0207");
+                    clients.setBusinessName("Sem Cliente");
+                    clients.setPersonType(1);
+                    clients.setProfileType(3);
+                    clients.setEmail("email");
+                    clients.setPathPicture("pathpicture");
+                    clients.setPhone("phone");
+                    clients.setOrganization(organizationService.getOrganizationByStringId("A0207"));
+                    clients.setIsDeleted("false");
+                    clientsService.saveClients(clients);
+                }
+
+
                 URL url = new URL(urlMontada + "&$top=1000" + "&$skip=" + quant);
                 HttpURLConnection conexao = (HttpURLConnection) url.openConnection();
 
@@ -184,43 +267,53 @@ public class MovideskIntegracao {
                 BufferedReader resposta = new BufferedReader(new InputStreamReader((conexao.getInputStream())));
                 String jsonEmString = Util.converteJsonEmString(resposta);
 
-                Type listType = new TypeToken<ArrayList<Tickets>>() {
+                Type listType = new TypeToken<ArrayList<TicketsJson>>() {
                 }.getType();
                 GsonBuilder builder = new GsonBuilder();
                 builder.setPrettyPrinting();
                 Gson gson = builder.create();
-                ticketsAux = gson.fromJson(jsonEmString, listType);
+                ticketsjson = gson.fromJson(jsonEmString, listType);
                 LOG.info("Iniciou Importação Parcial");
-                for (int i = 0; i < ticketsAux.size(); i++) {
+
+                for (int i = 0; i < ticketsjson.size(); i++) {
+                    Tickets ticketsAux = convert.converteTickets(ticketsjson.get(i));
                     if (tickets.size() == 0) {
-                        tickets.add(0, ticketsAux.get(i));
+                        tickets.add(0, ticketsAux);
                     } else {
                         Integer position = tickets.size();
-                        tickets.add(position, ticketsAux.get(i));
+                        tickets.add(position, ticketsAux);
                     }
-                    if (ticketsAux.get(i).getOwner() == null) {
+                    if (ticketsAux.getOwner() == null) {
                         Owner owner = ownerService.getOwnerByStringId("A0207");
-                        ticketsAux.get(i).setOwner(owner);
+                        ticketsAux.setOwner(owner);
                     }
 
-                    if (ticketsAux.get(i).getActionCount() >= 0) {
-                    } else {
-
+                    if (ticketsAux.getClients() == null) {
+                        Clients clients = clientsService.getClientsByStringId("A0207");
+                        ticketsAux.setClients(clients);
                     }
 
-                    if (ticketsService.getTicketsExist(ticketsAux.get(i).getId())) {
-                        ticketsService.updateTickets(ticketsAux.get(i).getId(), ticketsAux.get(i));
-                        // System.out.println(ticketsAux.get(i).getId());
-                        LOG.info("Atualizado Registro = " + ticketsAux.get(i).getId());
+                    if (ticketsAux.getClients().getOrganization() == null) {
+                        Clients clients = new Clients();
+                        Organization organization = organizationService.getOrganizationByStringId("A0207");
+                        clients = ticketsAux.getClients();
+                        clients.setOrganization(organization);
+                        ticketsAux.setClients(clients);
+                    }
+
+                    if (ticketsService.getTicketsExist(ticketsAux.getId())) {
+                        ticketsService.updateTickets(ticketsAux.getId(), ticketsAux);
+                        // System.out.println(ticketsjson.get(i).getId());
+                        LOG.info("Atualizado Registro = " + ticketsAux.getId());
                     } else {
-                        ticketsService.saveTickets(ticketsAux.get(i));
-                        // System.out.println(ticketsAux.get(i).getId());
-                        LOG.info("Incluido Registro = " + ticketsAux.get(i).getId());
+                        ticketsService.saveTickets(ticketsAux);
+                        // System.out.println(ticketsjson.get(i).getId());
+                        LOG.info("Incluido Registro = " + ticketsAux.getId());
                     }
 
                 }
 
-                end = ticketsAux.size() >= 1000;
+                end = ticketsjson.size() >= 1000;
                 quant = quant + 1000;
             }
             LOG.info("Terminou Importação Parcial de Tickets");
@@ -229,6 +322,7 @@ public class MovideskIntegracao {
             up.setErrorAtualizacao("Não");
             registroAtualizacao(up.getId(), up);
             tentativaUpdate = 0;
+            atualizaCustomClients();
             return tickets;
         } catch (Exception e) {
             LOG.info(e);
@@ -249,6 +343,7 @@ public class MovideskIntegracao {
     }
 
     public List<Tickets> atualizarSituacaoTickets() throws Exception {
+        Converte converte = new Converte();
         String urlMontada = webService + "&id=";
         List<Tickets> tickets = new ArrayList<Tickets>();
         String baseStatus = "";
@@ -274,16 +369,16 @@ public class MovideskIntegracao {
                         break;
                 }
                 LOG.info("Atualizando: " + baseStatus);
-                List<Tickets> ticketsAux = ticketsService.getTicketsbaseStatus(baseStatus);
-                LOG.info("Quantidade de Registro - " + baseStatus + " = " + ticketsAux.size());
-                for (int i = 0; i < ticketsAux.size(); i++) {
+                List<Tickets> ticketsjson = ticketsService.getTicketsbaseStatus(baseStatus);
+                LOG.info("Quantidade de Registro - " + baseStatus + " = " + ticketsjson.size());
+                for (int i = 0; i < ticketsjson.size(); i++) {
 
                     // captura id
-                    ultimo_id = ticketsAux.get(i).getId();// System.out.println("Base Local" +
-                                                          // ticketsAux.get(i).getId());
+                    ultimo_id = ticketsjson.get(i).getId();// System.out.println("Base Local" +
+                                                           // ticketsjson.get(i).getId());
 
                     if (status_erro) {
-                        String data = ticketsAux.get(i).getCreatedDate();
+                        String data = ticketsjson.get(i).getCreatedDate();
                         if (ultimo_id == erro_id) {
                             long ret = validaTickets(erro_id, data);
                             if (ret == 0) {
@@ -293,7 +388,7 @@ public class MovideskIntegracao {
                                 status_erro = false;
                                 long itemp = i;
                                 itemp++;
-                                if (itemp < ticketsAux.size()) {
+                                if (itemp < ticketsjson.size()) {
                                     i++;
                                 } else {
                                     up.setHoraFimAtualizacao(pegarHora());
@@ -322,9 +417,9 @@ public class MovideskIntegracao {
                     } else {
                         localizar = true;
                     }
-                    LOG.info("Base Local = " + ticketsAux.get(i).getId());
+                    LOG.info("Base Local = " + ticketsjson.get(i).getId());
                     if (localizar) {
-                        URL url = new URL(urlMontada + ticketsAux.get(i).getId());
+                        URL url = new URL(urlMontada + ticketsjson.get(i).getId());
                         HttpURLConnection conexao = (HttpURLConnection) url.openConnection();
                         if (conexao.getResponseCode() != codigoSucesso)
                             throw new RuntimeException("HTTP error code : " + conexao.getResponseCode());
@@ -336,11 +431,24 @@ public class MovideskIntegracao {
                         builder.setPrettyPrinting();
                         Gson gson = builder.create();
 
-                        Tickets ticketsUpdate = gson.fromJson(jsonEmString, Tickets.class);
+                        TicketsJson ticketsUpdateJson = gson.fromJson(jsonEmString, TicketsJson.class);
+                        Tickets ticketsUpdate = converte.converteTickets(ticketsUpdateJson);
                         if (ticketsService.getTicketsExist(ticketsUpdate.getId())) {
                             if (ticketsUpdate.getOwner() == null) {
                                 Owner owner = ownerService.getOwnerByStringId("A0207");
                                 ticketsUpdate.setOwner(owner);
+                            }
+
+                            if (ticketsUpdate.getClients() == null) {
+                                Clients clients = clientsService.getClientsByStringId("A0207");
+                                ticketsUpdate.setClients(clients);
+                            }
+                            if (ticketsUpdate.getClients().getOrganization() == null) {
+                                Clients clients = new Clients();
+                                Organization organization = organizationService.getOrganizationByStringId("A0207");
+                                clients = ticketsUpdate.getClients();
+                                clients.setOrganization(organization);
+                                ticketsUpdate.setClients(clients);
                             }
                             ticketsService.updateTickets(ticketsUpdate.getId(), ticketsUpdate);
                             LOG.info(baseStatus + " - Base Local Atualizada = " + ticketsUpdate.getId());
@@ -361,7 +469,7 @@ public class MovideskIntegracao {
             up.setErrorAtualizacao("Não");
             registroAtualizacao(up.getId(), up);
             LOG.info("Fim da Atualizada de Status");
-            tentativaStatus=0;
+            tentativaStatus = 0;
             return tickets;
         } catch (Exception e) {
             LOG.info(e);
@@ -428,7 +536,7 @@ public class MovideskIntegracao {
                 + dataStr + "T23:59:59.00z";
 
         try {
-            List<Tickets> ticketsAux = new ArrayList<Tickets>();
+            List<TicketsJson> ticketsjson = new ArrayList<TicketsJson>();
 
             LOG.info("Iniciou Validação se Existe Tickets:");
             URL url = new URL(urlMontada);
@@ -439,15 +547,15 @@ public class MovideskIntegracao {
 
             String jsonEmString = Util.converteJsonEmString(resposta);
 
-            Type listType = new TypeToken<ArrayList<Tickets>>() {
+            Type listType = new TypeToken<ArrayList<TicketsJson>>() {
             }.getType();
 
             GsonBuilder builder = new GsonBuilder();
             builder.setPrettyPrinting();
             Gson gson = builder.create();
-            ticketsAux = gson.fromJson(jsonEmString, listType);
-            for (int i = 0; i < ticketsAux.size(); i++) {
-                if (ticketsAux.get(i).getId() == id) {
+            ticketsjson = gson.fromJson(jsonEmString, listType);
+            for (int i = 0; i < ticketsjson.size(); i++) {
+                if (ticketsjson.get(i).getId() == id) {
                     return 1;
                 }
             }
@@ -456,5 +564,122 @@ public class MovideskIntegracao {
             LOG.info(e);
             return 2;
         }
+    }
+
+    public void atualizaCustomClients() throws Exception {
+        String urlMontada = "https://api.movidesk.com/public/v1/tickets?" +
+                "token=6fd0a503-b0d1-40fe-91f8-4cc4e3e027f7&$select=id&$orderby=id" +
+                "&$expand=customFieldValues($expand=items)";// &$top=100&$skip=180000
+
+        Boolean end = true;
+        Update up = new Update();
+        long quant = 0;
+        quant = ticketsService.countTicketsSemClientCustom();
+        LOG.info("Quantidade de Registro Inicio = " + quant);
+
+        try {
+            // incluir log no banco
+            up.setTipoAtualizacao(3);
+            up.setHoraInicioAtualizacao(pegarHora());
+            up.setDataInicioAtualizacao(pegarData());
+            up = registroIncluirAtualizacao(up);
+
+            if (customClientService.countCustomClients() == 0) {
+                CustomClients customclients = new CustomClients();
+                customclients.setId(1);
+                customclients.setCustomFieldItem("Sem Custom Clients");
+                customClientService.saveCustomClients(customclients);
+            }
+
+            while (end) {
+                List<TicketsJson> ticketsjson = new ArrayList<TicketsJson>();
+
+                URL url = new URL(urlMontada + "&$top=1000" + "&$skip=" + quant);
+                HttpURLConnection conexao = (HttpURLConnection) url.openConnection();
+
+                if (conexao.getResponseCode() != codigoSucesso)
+                    throw new RuntimeException("HTTP error code : " + conexao.getResponseCode());
+
+                BufferedReader resposta = new BufferedReader(new InputStreamReader((conexao.getInputStream())));
+                String jsonEmString = Util.converteJsonEmString(resposta);
+
+                Type listType = new TypeToken<ArrayList<TicketsJson>>() {
+                }.getType();
+                GsonBuilder builder = new GsonBuilder();
+                builder.setPrettyPrinting();
+                Gson gson = builder.create();
+                ticketsjson = gson.fromJson(jsonEmString, listType);
+                LOG.info("Iniciou Importação Custom Clients Parcial");
+
+                for (int i = 0; i < ticketsjson.size(); i++) {
+                    Tickets ticketsAux = new Tickets();
+                    if (ticketsService.getTicketsExist(ticketsjson.get(i).getId())) {
+                        List<CustomFieldValues> customField = new ArrayList<CustomFieldValues>();
+                        ticketsAux = ticketsService.getTicketsById(ticketsjson.get(i).getId());
+                        customField = ticketsjson.get(i).getCustomFieldItem();
+                    
+                        if (customField == null) {
+                            CustomClients custom = customClientService.getCustomClientsById(1);
+                            ticketsAux.setCustomClients(custom);
+
+                        } else if (customField.size() > 0) {
+                            for (int a = 0; a < customField.size(); a++) {
+                                if (customField.get(a).getCustomFieldId() == 24609) {
+                                    CustomClients custom = new CustomClients();
+                                    if (customField.get(a).getItems().size() > 0) {
+                                        if (customClientService.countCustomClientsItem(
+                                                customField.get(a).getItems().get(0).getCustomFieldItem()) > 0) {
+                                            custom = customClientService
+                                                    .getCustomClientsByString(
+                                                            customField.get(a).getItems().get(0).getCustomFieldItem());
+                                        } else {
+                                            custom.setCustomFieldItem(
+                                                    customField.get(a).getItems().get(0).getCustomFieldItem());
+                                            custom = customClientService.saveCustomClients(custom);
+                                        }
+
+                                    } else {
+                                        custom = customClientService.getCustomClientsById(1);
+                                    }
+                                    ticketsAux.setCustomClients(custom);
+                                }
+                            }
+                        } else {
+                            CustomClients custom = customClientService.getCustomClientsById(1);
+                            ticketsAux.setCustomClients(custom);
+                        }
+                        ticketsService.updateTickets(ticketsAux.getId(), ticketsAux);
+                        LOG.info("Atualizado Custom Clients Registro = " + ticketsAux.getId());
+
+                    }
+
+                }
+
+                end = ticketsjson.size() >= 1000;
+                quant = quant + 1000;
+            }
+            LOG.info("Terminou Importação Custom Clients de Tickets");
+            up.setHoraFimAtualizacao(pegarHora());
+            up.setDataFimAtualizacao(pegarData());
+            up.setErrorAtualizacao("Não");
+            registroAtualizacao(up.getId(), up);
+            tentativaCustomClients = 0;
+        } catch (Exception e) {
+            LOG.info(e);
+            up.setHoraFimAtualizacao(pegarHora());
+            up.setDataFimAtualizacao(pegarData());
+            up.setErrorAtualizacao("Sim");
+            registroAtualizacao(up.getId(), up);
+            LOG.info("Reiniciando Serviço");
+            if (tentativaCustomClients < 3) {
+                tentativaCustomClients++;
+                atualizaCustomClients();
+            } else {
+                LOG.info("3 tentativas de Atualização");
+                tentativaCustomClients = 0;
+            }
+            throw new Exception("ERRO: " + e);
+        }
+
     }
 }

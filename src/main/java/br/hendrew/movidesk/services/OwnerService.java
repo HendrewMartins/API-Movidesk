@@ -15,11 +15,11 @@ public interface OwnerService {
 
     List<Owner> getAllOwner();
 
-    Owner updateOwner(long id, Owner owner) throws MenssageNotFoundException;
+    Owner updateOwner(String id, Owner owner) throws MenssageNotFoundException;
 
     Owner saveOwner(Owner owner);
 
-    void deleteOwner(long id) throws MenssageNotFoundException;
+    void deleteOwner(String id) throws MenssageNotFoundException;
 
     long countOwner();
 
