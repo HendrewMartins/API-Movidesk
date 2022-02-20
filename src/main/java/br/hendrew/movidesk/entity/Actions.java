@@ -14,7 +14,6 @@ import javax.persistence.Table;
 public class Actions implements Serializable{
 
     @Id
-	//@GeneratedValue(strategy = GenerationType.SEQUENCE)
     private long id;
 
     @Id

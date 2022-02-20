@@ -80,6 +80,17 @@ public class TicketsController {
 
     @GET
     @PermitAll
+    @Path("/importaractions")
+    @Operation(summary = "Importar Actions", description = "Importar Actions")
+    @APIResponses(value = @APIResponse(responseCode = "200", description = "Success", content = @Content(mediaType = "application/json", schema = @Schema(implementation = Boolean.class))))
+    public boolean getImportaActions() throws Exception {
+        mov.beginActions();
+        return true;
+        
+    }
+
+    @GET
+    @PermitAll
     @Path("/statusTickets")
     @Operation(summary = "Atualiza Tickets Status", description = "Atualiza Status New, InAttendance, Stopped")
     @APIResponses(value = @APIResponse(responseCode = "200", description = "Success", content = @Content(mediaType = "application/json", schema = @Schema(implementation = Tickets.class))))

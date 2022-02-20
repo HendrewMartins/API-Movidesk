@@ -13,6 +13,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Objects;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
@@ -21,6 +22,8 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 
+import br.hendrew.movidesk.entity.Actions;
+import br.hendrew.movidesk.entity.ActionsAux;
 import br.hendrew.movidesk.entity.Clients;
 import br.hendrew.movidesk.entity.CustomClients;
 import br.hendrew.movidesk.entity.CustomFieldValues;
@@ -45,6 +48,8 @@ public class MovideskIntegracao {
     public long tentativaUpdate = 0;
     public long tentativaStatus = 0;
     public long tentativaCustomClients = 0;
+    public long tentativaActions = 0;
+    public long quantActionsErrro = 0;
 
     static String webService = "https://api.movidesk.com/public/v1/tickets?" +
             "token=6fd0a503-b0d1-40fe-91f8-4cc4e3e027f7&$select=id,type,subject,createdDate,"
@@ -61,17 +66,19 @@ public class MovideskIntegracao {
     private final CustomClientsService customClientService;
     private final ClientsService clientsService;
     private final OrganizationService organizationService;
+    private final ActionsService actionsService;
 
     @Inject
     public MovideskIntegracao(TicketsService ticketsService, OwnerService ownerService,
             AtualizacaoService atualizacaoService, CustomClientsService customClientService,
-            ClientsService clientsService, OrganizationService organizationService) {
+            ClientsService clientsService, OrganizationService organizationService, ActionsService actionsService) {
         this.ticketsService = ticketsService;
         this.ownerService = ownerService;
         this.atualizacaoService = atualizacaoService;
         this.customClientService = customClientService;
         this.clientsService = clientsService;
         this.organizationService = organizationService;
+        this.actionsService = actionsService;
     }
 
     public List<Tickets> buscarTodosTickets() throws Exception {
@@ -127,8 +134,6 @@ public class MovideskIntegracao {
                         clients.setIsDeleted("false");
                         clientsService.saveClients(clients);
                     }
-
-                    
 
                     URL url = new URL(urlMontada + "&$top=1000" + "&$skip=" + quant);
                     HttpURLConnection conexao = (HttpURLConnection) url.openConnection();
@@ -257,7 +262,6 @@ public class MovideskIntegracao {
                     clientsService.saveClients(clients);
                 }
 
-
                 URL url = new URL(urlMontada + "&$top=1000" + "&$skip=" + quant);
                 HttpURLConnection conexao = (HttpURLConnection) url.openConnection();
 
@@ -344,7 +348,7 @@ public class MovideskIntegracao {
 
     public List<Tickets> atualizarSituacaoTickets() throws Exception {
         Converte converte = new Converte();
-        String urlMontada = webService + "&id=";
+        String urlMontada = webService + ",actions" + "&id=";
         List<Tickets> tickets = new ArrayList<Tickets>();
         String baseStatus = "";
         Update up = new Update();
@@ -452,6 +456,19 @@ public class MovideskIntegracao {
                             }
                             ticketsService.updateTickets(ticketsUpdate.getId(), ticketsUpdate);
                             LOG.info(baseStatus + " - Base Local Atualizada = " + ticketsUpdate.getId());
+
+                            List<ActionsAux> actionsAux = ticketsUpdateJson.getActions();
+
+                            if (Objects.nonNull(ticketsUpdate)) {
+                                actionsService.deleteActionsTickets(ticketsUpdate);
+                                if (actionsAux != null && actionsAux.isEmpty()) {
+                                    for (int a = 0; a < actionsAux.size(); a++) {
+                                        Actions actions = converte.converteActions(actionsAux.get(a), ticketsUpdate);
+                                        actionsService.saveActions(actions);
+                                    }
+
+                                }
+                            }
                         }
 
                         // alimenta array de retorno
@@ -617,7 +634,7 @@ public class MovideskIntegracao {
                         List<CustomFieldValues> customField = new ArrayList<CustomFieldValues>();
                         ticketsAux = ticketsService.getTicketsById(ticketsjson.get(i).getId());
                         customField = ticketsjson.get(i).getCustomFieldItem();
-                    
+
                         if (customField == null) {
                             CustomClients custom = customClientService.getCustomClientsById(1);
                             ticketsAux.setCustomClients(custom);
@@ -677,6 +694,101 @@ public class MovideskIntegracao {
             } else {
                 LOG.info("3 tentativas de Atualização");
                 tentativaCustomClients = 0;
+            }
+            throw new Exception("ERRO: " + e);
+        }
+
+    }
+
+    public void beginActions() throws Exception {
+        String urlMontada = "https://api.movidesk.com/public/v1/tickets?" +
+                "token=6fd0a503-b0d1-40fe-91f8-4cc4e3e027f7&$select=id&$orderby=id" +
+                "&$expand=actions";
+
+        Boolean end = true;
+        Update up = new Update();
+        long quant = quantActionsErrro;
+        LOG.info("Quantidade de Registro Inicio = " + quant);
+        Converte convert = new Converte();
+
+        try {
+            // incluir log no banco
+            up.setTipoAtualizacao(4);
+            up.setHoraInicioAtualizacao(pegarHora());
+            up.setDataInicioAtualizacao(pegarData());
+            up = registroIncluirAtualizacao(up);
+
+            while (end) {
+                List<TicketsJson> ticketsjson = new ArrayList<TicketsJson>();
+
+                URL url = new URL(urlMontada + "&$top=1000" + "&$skip=" + quant);
+                HttpURLConnection conexao = (HttpURLConnection) url.openConnection();
+
+                if (conexao.getResponseCode() != codigoSucesso)
+                    throw new RuntimeException("HTTP error code : " + conexao.getResponseCode());
+
+                BufferedReader resposta = new BufferedReader(new InputStreamReader((conexao.getInputStream())));
+                String jsonEmString = Util.converteJsonEmString(resposta);
+
+                Type listType = new TypeToken<ArrayList<TicketsJson>>() {
+                }.getType();
+                GsonBuilder builder = new GsonBuilder();
+                builder.setPrettyPrinting();
+                Gson gson = builder.create();
+                ticketsjson = gson.fromJson(jsonEmString, listType);
+                LOG.info("Iniciou Importação Actions");
+
+                for (int i = 0; i < ticketsjson.size(); i++) {
+                    Tickets ticketsAux = new Tickets();
+                    if (ticketsService.getTicketsExist(ticketsjson.get(i).getId())) {
+                        List<ActionsAux> actionsAux = new ArrayList<ActionsAux>();
+                        ticketsAux = ticketsService.getTicketsById(ticketsjson.get(i).getId());
+                        actionsAux = ticketsjson.get(i).getActions();
+
+                        if (Objects.nonNull(ticketsAux)) {
+
+                            if (actionsAux != null && !actionsAux.isEmpty()) {
+
+                                for (int a = 0; a < actionsAux.size(); a++) {
+
+                                    Actions actions = convert.converteActions(actionsAux.get(a), ticketsAux);
+                                    if(actionsService.countActionsTickets(ticketsAux) > 0){
+                                        a = actionsAux.size();
+                                    }else{
+                                    actionsService.saveActions(actions);
+                                    }
+                                }
+
+                            }
+                        }
+                        LOG.info("Inserido Actions Registro = " + ticketsAux.getId());
+                    }
+
+                }
+
+                end = ticketsjson.size() >= 1000;
+                quant = quant + 1000;
+            }
+            LOG.info("Terminou Importação ACtions de Tickets");
+            up.setHoraFimAtualizacao(pegarHora());
+            up.setDataFimAtualizacao(pegarData());
+            up.setErrorAtualizacao("Não");
+            registroAtualizacao(up.getId(), up);
+            tentativaActions = 0;
+        } catch (Exception e) {
+            LOG.info(e);
+            quantActionsErrro = quant;
+            up.setHoraFimAtualizacao(pegarHora());
+            up.setDataFimAtualizacao(pegarData());
+            up.setErrorAtualizacao("Sim");
+            registroAtualizacao(up.getId(), up);
+            LOG.info("Reiniciando Serviço");
+            if (tentativaActions < 3) {
+                tentativaActions++;
+                beginActions();
+            } else {
+                LOG.info("3 tentativas de Atualização");
+                tentativaActions = 0;
             }
             throw new Exception("ERRO: " + e);
         }

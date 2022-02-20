@@ -39,8 +39,8 @@ public class TicketsJson {
     private Date dataTicket;
     private Time horaTicket;
     private List<Clients> clients;
-    private  List<CustomFieldValues> customFieldValues;
-    // private ActionsAux actions;
+    private List<CustomFieldValues> customFieldValues;
+    private List<ActionsAux> actions;
 
     public TicketsJson() {
     }
@@ -300,12 +300,14 @@ public class TicketsJson {
     public void setHoraTicket(Time horaTicket) {
         this.horaTicket = horaTicket;
     }
-    // public ActionsAux getActions() {
-    // return actions;
-    // }
-    // public void setActions(ActionsAux actions) {
-    // this.actions = actions;
-    // }
+
+    public List<ActionsAux> getActions() {
+        return actions;
+    }
+
+    public void setActions(List<ActionsAux> actions) {
+        this.actions = actions;
+    }
 
     public List<Clients> getClients() {
         return clients;
@@ -315,7 +317,6 @@ public class TicketsJson {
         this.clients = clients;
     }
 
-    
     public List<CustomFieldValues> getCustomFieldItem() {
         return customFieldValues;
     }
